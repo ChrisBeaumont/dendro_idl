@@ -96,11 +96,11 @@ function extrap, xin, yin, targett = targett, fast = fast, $
 
 ;   DO THE EXTRAPOLATION
     extrap_value = median(coeffs[0, *] + coeffs[1, *]*targett)
-    scatter =  mad(coeffs[0, *] + coeffs[1, *]*targett)
+    scatter =  er_mad(coeffs[0, *] + coeffs[1, *]*targett)
     if (keyword_set(square)) then begin
       extrap_value = median(coeffs[0, *] + coeffs[1, *]*targett + $
                             coeffs[2, *]*targett^2)  
-      scatter = mad(coeffs[0, *] + coeffs[1, *]*targett + $
+      scatter = er_mad(coeffs[0, *] + coeffs[1, *]*targett + $
                     coeffs[2, *]*targett^2)  
 
     endif

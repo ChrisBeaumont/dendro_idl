@@ -2,7 +2,8 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
                 resolvetop = resolvetop, minpix = minpix, levels = levels, $
                 all_neighbors = all_neighbors, kernels = kernels, $
                 delta = delta, pointer = pointer, structure = structure, $
-                nlevels = nlevels, ecube = ecube, error = error
+                nlevels = nlevels, ecube = ecube, error = error, fast = fast, $
+                minpeak = minpeak
 ;+
 ; NAME:
 ;    TOPOLOGIZE
@@ -34,6 +35,8 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
 ;    DETLA --  Used in culling local maxima (see DECIMATE_KERNELS.pro)
 ;              for details.
 ;    NLEVELS -- The number of contour levels to use.
+;    FAST -- If set, use some different procedures to speed up
+;            execution time.
 ;
 ; OUTPUTS: Keyword controlled.  IF YOU WANT ANY OUTPUT, you must set a
 ; keyword.  You may set either:
@@ -48,7 +51,8 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
 ;
 ; MODIFICATION HISTORY:
 ;
-;	Fri Oct 20 18:52:58 2006, Erik 
+;	Fri Oct 20 18:52:58 2006, Erik
+;       Feb 2010: Added /FAST keyword. Chris Beaumont 
 ;
 ;-
 
@@ -76,7 +80,7 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
 
   if n_elements(ecube) eq 0 then begin
     if n_elements(error) eq 0 then $ 
-      err = replicate(mad(data), n_elements(t)) else $
+      err = replicate(er_mad(data), n_elements(t)) else $
         err = replicate(error, n_elements(t)) 
   endif else err = ecube[cubeindex]
 
@@ -90,8 +94,8 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
 ;  clusterlabel = intarr(n_elements(cubeindex))-1
 
   if n_elements(kernels) gt 0 then begin
-    newkern = kernels*0
-    for i = 0, n_elements(kernels)-1 do newkern[i] = where(indcube eq kernels[i])
+     newkern = kernels*0
+     for i = 0, n_elements(kernels)-1 do newkern[i] = where(indcube eq kernels[i])
   endif 
 
 ; Establish Contouring levels if unset
@@ -109,19 +113,61 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
 
 ; Establish local maxima if unset
   if n_elements(newkern) eq 0 then begin 
-    lmax = alllocmax(minicube, friends = friends, specfriends = specfriends)
-    kernels = decimate_kernels(lmax, minicube, $
-                               all_neighbors = all_neighbors $
-                               , delta = delta, sigma = 1.0 $
-                               , minpix = minpix);, levels = levels)
+     if keyword_set(fast) then begin
+        lmax = cnb_alllocmax(minicube, friends = friends, $
+                             specfriends = specfriends)
+        help, lmax
+        if n_elements(minpeak) ne 0 then begin
+           print, 'Minpeak is set! Overriding your choice!!!'
+           s = reverse(sort(minicube[lmax]))
+           lmax = lmax[s[0:99]]
+           ;good = where(minicube[lmax] gt minpeak, ct)
+           ;if ct eq 0 then $
+           ;   message, 'No local maxima satisfy criteria'
+           ;lmax = lmax[good]
+        endif
+        kernels = cnb_decimate_kernels(lmax, minicube, $
+                                       all_neighbors = all_neighbors $
+                                       , delta = delta, sigma = 1.0)
+     endif else begin
+        lmax = alllocmax(minicube, friends = friends, $
+                         specfriends = specfriends)
+        help, lmax
+        if n_elements(minpeak) ne 0 then begin
+           good = where(minicube[lmax] gt minpeak, ct)
+           if ct eq 0 then $
+              message, 'No local maxima satisfied criteria'
+           lmax = lmax[good]
+        endif
+        
+        kernels = decimate_kernels(lmax, minicube, $
+                                   all_neighbors = all_neighbors $
+                                   , delta = delta, sigma = 1.0 $
+                                   , minpix = minpix) ;, levels = levels)
+     endelse 
+;    kernels = lmax
   endif else kernels = newkern
   message, 'Kernels used in decomposition: '+$
            string(n_elements(kernels)), /con
 ; Calculated toplogy of the data cube
-    merger = mergefind(minicube, kernels, levels = levels, $
-                       all_neighbors = all_neighbors)
-    disconnected = where(merger ne merger, discct)
-    if discct gt 0 then merger[disconnected] = 0.0
+  if keyword_set(fast) then begin
+     merger = cnb_mergefind(minicube, kernels, $
+                            all_neighbors = all_neighbors)
+  endif else begin
+     merger = mergefind(minicube, kernels, levels = levels, $
+                            all_neighbors = all_neighbors)
+  endelse 
+
+  disconnected = where(merger ne merger, discct)
+  if discct gt 0 then merger[disconnected] = 0.0
+
+;- eliminate insignificant kernels
+  if keyword_set(fast) && n_elements(newkern) eq 0 then begin
+     decimate_merger, merger, kernels, minicube, $
+                      all_neighbors = all_neighbors, $
+                      delta = delta, sigma = 1.0, $
+                      minpix = minpix
+  endif
 
 ; Turn into sparse values again.
     vectorify, minicube, x = x, y = y, v = v, t = t, $
@@ -184,7 +230,8 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
     order = leafnodes
     sz = size(minicube)    
     cluster_label = labelclusters(height, clusters, $
-                                  kernels, levels, x, y, v, t, sz)
+                                  kernels, levels, x, y, v, t, sz, $
+                                  all_neighbors = all_neighbors)
 
 ; Create a topology structure to contain all the information about the
 ; cloud's analysis
@@ -196,7 +243,7 @@ pro topologize, data, mask, friends = friends, specfriends = specfriends, $
                  cubeindex:cubeindex, szdata:szdata, $
                  all_neighbors:all_neighbors, err:err, xlocation:xlocation}
 
-    pointer = ptr_new(structure)
+    if arg_present(pointer) then pointer = ptr_new(structure)
 
   return
 end

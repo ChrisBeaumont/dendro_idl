@@ -1,0 +1,75 @@
+*** INTRODUCTION ***
+These procedures have been modified from the Erik's original code, in
+an attempt to speed things up. To try this out, use the /FAST keyword
+to topologize.pro. 
+
+I've made two types of modifications, which I describe below. The
+first set are changes to the IDL code, and work by default. The second
+set involve IDL calling new procedures written in C. 
+
+IMPORTANT: For some of these changes to work, you will have to compile
+           the file libdendro.c, described in the last section.
+
+
+*** Changes to the IDL code *** 
+
+1) decimate_kernels.pro
+The way insiginificant leaves are pruned from the dendrogram has been
+modified. In the original code, this happened during
+decimate_kernels.pro. This function searched for the contour values
+defining the first merger for each leaf. It then rejected leaves with
+insufficient contrast above the merger, or with too small of an area.
+
+The poor-contrast leaves can be excised much more efficiently than
+this, by testing whether the contour level with the minimum acceptable
+contrast encloses any other leaves. 
+
+In practice, the minimum area criterion is usually redundant, since
+small peaks tend to also fail the contrast test. At the moment, this
+test is thus skipped, which saves some time. In the future, this test
+should be added to cnb_mergefind (see documentation in that file).
+
+cnb_decimate_kernels re-impements decimate_kernels, using the
+fast-contrast test, and skipping the area test.
+
+2) mergefind.pro
+
+This routine is meant to identify the contour levels at which each
+pair of kernels merge. It does so by generating a large number of
+contours and searching for the important levels.
+
+cnb_mergefind.pro re-implements this procedure as a binary
+search. This method avoids creating unncecessary contour levels, and
+also avoids having to define an intelligent "first guess" at which
+contour levels to try. It's thus faster and more robust than mergefind.pro
+
+*** C-based changes ***
+
+There are a few C-based functions in libdendro.c that are meant to
+replace certain calls to label_seed, and all calls to
+alllocmax.pro. The IDL functions label_region.pro and
+cnb_alllocmax.pro are wrappers that call these C programs. For this to
+work, you must compile libdendro.c and create the shared library libdendro.so.
+
+If you don't know how to do this, the IDL function "make_dll" may help.
+
+If IDL can't find libdendro.so at runtime, it will use the (slower) routines alllocmax and label_region.
+
+
+*** Hints on compiling libdendro.c ***
+
+I ran the following commands on my (64 bit) linux machine, to get
+libdendro.so to work with by (32 bit) IDL version:
+
+gcc -Wall -I /usr/local/rsi/idl70/external/include -fPIC -L. -c -m32 -fno-stack-protector libdendro.c
+ld -shared -soname libdendro.so.1 -o libdendro.so.1.0 -melf_i386 -lc libdendro.o
+ldconfig -v -n .
+ln -sf libdendro.so.1 libdendro.so
+
+if both IDL and your OS are 32 or 64 bit, then you can dispense with the -m32 and -melf_i386 options
+
+To compile on my mac, I used the IDL routine make_dll in the directory where libdendro.c was
+IDL> make_dll, 'libdendro', 'libdendro', input_dir='.', output_dir='.'
+
+(make sure libdendro.so ends up in a directory in your IDL path)
+

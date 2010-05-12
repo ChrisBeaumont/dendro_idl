@@ -59,7 +59,7 @@ function decimate_kernels, k_in,  cube, ALL_NEIGHBORS = all_neighbors, $
 
 ; MEAN ABSOLUTE DEVIATION (CONVERTED TO SIGMA) OF DATA IN THE CUBE
   if n_elements(sigma) eq 0 then $
-    sigma = mad(cube)
+    sigma = er_mad(cube)
 
 ; Establish order of decimation: LOWEST -> HIGHEST
   kernel_value = cube[kernels]
@@ -90,8 +90,10 @@ function decimate_kernels, k_in,  cube, ALL_NEIGHBORS = all_neighbors, $
 
   message, 'Kernels rejected for area: '+string(area_rejects), /con
   message, 'Kernels rejected for contrast: '+string(delta_rejects), /con
-
+  
   valid_kernel_ind = where(valid_kernel, valid_ct)
+  print, 'kernels used: ',string(valid_ct)
+  
   newkernels = kernels[valid_kernel_ind]
   return, newkernels
 end

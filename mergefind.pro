@@ -39,7 +39,9 @@ function mergefind, cube, kernels, nlevels = nlevels $
   nuniqold = 0
   doneflag = 0b
   z = 0L
+  itercount = 0L
   repeat begin 
+     itercount++
 ; Mask and label a data cube for a given contour value
     testvalue = lvs[z]
     l = label_region(cube ge testvalue, all_neighbors = all_neighbors, /ulong)
@@ -73,7 +75,7 @@ function mergefind, cube, kernels, nlevels = nlevels $
     endelse
     if z eq n_elements(lvs) then doneflag = 1b
   endrep until (doneflag eq 1)
-
+  print, 'COUNT is ', itercount
  
   merger_lower[indgen(kernel_ct), indgen(kernel_ct)] = cube[kernels]
 ; If the top hasn't been resolved, do it.
