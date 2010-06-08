@@ -24,14 +24,15 @@
 ;                 connected.
 ;
 ; PROCEDURE:
-;  label_seed will try to call an external C program in the file
-;  'libdendro.so' if /EXTERNAL is set. You must compile this yourself,
+;  label_seed will try to call an external C program from the libdendro
+;  shared library if /EXTERNAL is set. You must compile this yourself,
 ;  from the libdendro.c source code. The MAKE_DLL program can help
-;  with this. If IDL cant find libdendro.so, it skips the C program
-;  altogether. 
+;  with this. If IDL cant find libdendro, it skips the C program
+;  altogether. See the README file or find_libdendro.pro for more details.
 ;
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont
+;  May 2010: Changed the way libdendro is searched for. cnb.
 ;- 
 pro label_seed, data, thresh, seed, result, external = external, $
                 all_neighbors = all_neighbors
@@ -46,7 +47,7 @@ pro label_seed, data, thresh, seed, result, external = external, $
   is_dbl = size(data,/type) eq 5
   if ~is_dbl && keyword_set(external) then data = double(data)
 
-  lib = file_search('libdendro.so', count = ct)
+  lib = find_libdendro() & ct = strlen(lib)
   if keyword_set(external) && ct gt 0 then begin
      junk = call_external(lib[0], 'fill', $
                           data, result, long(ndim), $

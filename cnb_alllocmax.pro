@@ -28,6 +28,8 @@
 ;
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont
+;  May 2010: Re-added a line of code to define lmaxcube. cnb.
+;  May 24, 2010: Changed how libdendro.so is searched for. cnb.
 ;-  
 function cnb_alllocmax, cubein, indcube = indcube, $
                         friends = friends, $
@@ -41,7 +43,7 @@ function cnb_alllocmax, cubein, indcube = indcube, $
      specfriends = 0
      sz[3] = 1
   endif
-
+  lmaxcube = bytarr(sz[1], sz[2], sz[3])
 ; INITIALIZE THE DEFAULT BOX SIZE TO BE +/- ONE PIXEL (3 x 3 BOX)
   if (n_elements(friends) eq 0) then $
     friends = 1
@@ -54,8 +56,8 @@ function cnb_alllocmax, cubein, indcube = indcube, $
     cube[badind] = min(cubein, /nan)
  endif
 
-  lib = file_search('libdendro.so', count = ct)
-  if ct eq 0 then begin
+  lib = find_libdendro()
+  if strlen(lib) eq 0 then begin
      message, /continue, 'Could not find libdendro.so library. Defaulting to idl code'
      message, /continue, 'Try generating libdendro.so with MAKE_DLL'
      return, alllocmax(cubein, indcube = indcube, friends = friends, $
@@ -87,7 +89,7 @@ function cnb_alllocmax, cubein, indcube = indcube, $
     message, 'No true local max found, defaulting to high point in data.', /con
     dummy = max(lmaxcube, lmaxind, /nan)
   endif
-
+    message, /con, 'found '+strtrim(num,2)+' local maxima'
 ; IF THE INDEX CUBE IS SUPPLIED AND THERE ARE LOCAL MAXIMA THEN
 ; SUBSTITUTE THE INDICES FROM THE CUBE FOR THE ACTUAL INDICES
     if ((n_elements(indcube) gt 0)) then begin
@@ -101,11 +103,12 @@ function cnb_alllocmax, cubein, indcube = indcube, $
 pro test
   sz = 100
   data = randomu(seed, sz, sz, sz)
-
+  print, 'cnb_alllocmax:'
   t0 = systime(/seconds)
   x1 = cnb_alllocmax(data, friends = 5, specfriends = 5)
   t1 = systime(/seconds)
   print, time2string(t1 - t0)
+  print, 'alllocmax:'
   x2 = alllocmax(data, friends = 5, specfriends = 5)
   print, time2string(systime(/seconds) - t1)
   return

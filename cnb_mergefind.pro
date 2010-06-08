@@ -31,6 +31,7 @@
 function cnb_mergefind, cube, kernels, $
                         all_neighbors = all_neighbors, $
                         tol = tol
+  compile_opt idl2
 
   ;- pick a default tolerance level
   if n_elements(tol) eq 0 then tol = range(cube[kernels]) * 1d-3
