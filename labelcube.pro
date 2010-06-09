@@ -1,3 +1,36 @@
+;+
+; PURPOSE:
+;  This procedure writes out a dendrogram to a variety of files:
+;  1) An XML file, summarizing the hierarchy
+;  2) A postscript plot of the dendrogram
+;  3) A fits file, where the individual pixels in the input data are
+;     labeled according to the tallest dendrogram node of which they
+;     are a part. 
+;
+; INPUTS:
+;  ptr: The dendrogram pointer structure, returned by TOPOLOGIZE
+;  root: A string naming the fits file from which the dendrogram was
+;        generated. Does NOT include ".fits" at the end. The output
+;        files will be root.cll.fits, root.cluster.xml, and
+;        root.clusters.ps
+;
+; KEYWORD PARAMETERS:
+;  ps: Set to write out the ps file
+;  _extra: Extra keywords passed to dpl, the dendrogram plotting
+;  routine.
+;
+; OUTPUTS:
+;  root.cll.fits, root.cluster.xml, and (if /ps is set)
+;  root.clusters.ps are written to disk.
+;
+;  root.cll.fits is labeled according to the following rules:
+;   masked out pixels in the call to TOPOLOGIZE ==> -1 
+;   all other pixels ==> highest structure they belong to
+;
+; MODIFICATION HISTORY:
+;  The past: Written by Erik Rosolowsky.
+;  June 2010: Documented by Chris Beaumont.
+;-
 pro labelcube, ptr, root, _extra = ex, ps = ps
 
   sz = (*ptr).szdata
