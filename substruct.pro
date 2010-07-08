@@ -1,13 +1,11 @@
 ;+
 ; PURPOSE:
-;  This function creates masks of individiual dendrogram
-;  substructures.
+;  This function extracts individual substructures from a dendrogram
+;  hierarchy. 
 ;
 ; INPUTS:
 ;  index: The index of the substructure to extract
 ;  ptr: The ptr variable returned by TOPOLOGIZE
-;  labels: The cluster-labeled data (i.e. the contents of
-;          data.cll.fits)
 ;  
 ; KEYWORD PARAMETERS:
 ;  single: If set, then only pixels belonging to the index'th
@@ -15,50 +13,35 @@
 ;          leafward of index are also included. This is the difference
 ;          between selecting an annulus and an entire area enclosed by
 ;          a contour.
-;  xlo: The result is a cropped version of the original
-;       image/cube. xlo will contain the x coordinate, in the original
-;       data, of the left edge of the result.
-;  ylo: Same as xlo, but for the bottom edge
-;  zlo: Same as zlo, but for the front face (if the data is a cube)
 ;
 ; RESULT:
-;  A mask, where values of 1 denote pixels belonging to the requested
-;  structure. This mask is cropped, since most structures are
-;  substantially smaller than the original datacube. The xlo,ylo,zlo
-;  keywords contain the offset between this cropped cube and the
-;  original data.
+;  The indices of the pixels in the (x, y, v, t) tags which contain the
+;  requested structure. CAUTION: The x,y,v values are offset from the original
+;  data cube by an unspecified amount. Use the dendro_offset function to
+;  calculate this offset.
 ;
 ; MODIFICATION HISTORY:
 ;  June 2010: Written by Chris Beaumont
 ;-
-function substruct, index, ptr, labels, single = single, $
-                    xlo = xlo, ylo = ylo, zlo = zlo
-  
+function substruct, index, ptr, single = single
+                    
   compile_opt idl2
 
-  ndim = size(labels, /n_dim)
-  if keyword_set(single) then leaves = index else begin
-     leaves = leafward_mergers(index, (*ptr).clusters)
-     if leaves[0] ne index then leaves = [index, leaves]
-  endelse
-
-  mask = byte(data * 0)
-
-  for i = 0, n_elements(leaves) - 1, 1 do $
-     mask = mask or labels eq leaves[i]
+  if keyword_set(single) then indices = index else $
+     indices = leafward_mergers(index, (*ptr).clusters)
   
-  hit = where(mask, ct)
-  if ct eq 0 then return, -1
+  s = obj_new('stack')
+  for i = 0, n_elements(indices) - 1, 1 do begin
+     x = indices[i]
+     if (*ptr).cluster_label_h[x] eq 0 then continue
+     ind = (*ptr).cluster_label_ri[(*ptr).cluster_label_ri[x] : $
+                                   (*ptr).cluster_label_ri[x+1]-1]
+     s->push, ind
+  endfor
 
-  ;- extract a sub-image/cube containing the mask
-  ind = array_indices(labels, where(mask))
-  xlo = min(ind[0,*], max=xhi)
-  ylo = min(ind[1,*], max=yhi)
-  if ndim eq 3 then begin
-     zlo = min(ind[2,*], max=zhi)
-     result = mask[xlo:xhi, ylo:yhi, zlo:zhi]
-  endif else begin
-     result = mask[xlo:xhi, ylo:yhi]
-  endelse
-  return, result
+  bad = (s->getSize() eq 0)
+  result = s->toArray()
+  obj_destroy, s
+
+  return, bad ? !values.f_nana : result
 end

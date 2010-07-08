@@ -11,12 +11,14 @@
 ; KEYWORD PARAMETERS:
 ;  ALL_NEIGHBORS: Set to include 26, rather than 6, neighbors for each
 ;                 pixel. 
-;  tol: The contour level will be determined to within tol of the true
-;       value.
+;  contour_res: The contour level will be determined to within this much of the true
+;               value.
 ;
 ; OUTPUTS:
 ;  An n_kernel x n_kernel array, whose (i,j) element denotes the
-;  contour level at which kernel_i merges with kernel_j. 
+;  contour level at which kernel_i merges with kernel_j. cnb_mergefind returns
+;  the upper bound for convenience later. Structures i and j merge somewhere
+;  between outputs[i,j] - contour_res and outputs[i,j]. 
 ;
 ; PROCEDURE:
 ;  We use a binary search to identify contour levels. While there are
@@ -27,20 +29,22 @@
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont. Adapted from mergefind.pro,
 ;            written by Erik Rosolowsky
+;  June 2010: Added contour_res keyword. Added code to resolve multi-way
+;  mergers. cnb. 
 ;-
 function cnb_mergefind, cube, kernels, $
                         all_neighbors = all_neighbors, $
-                        tol = tol
+                        contour_res = contour_res
   compile_opt idl2
 
-  ;- pick a default tolerance level
-  if n_elements(tol) eq 0 then tol = range(cube[kernels]) * 1d-3
+  ;- pick a default resolution
+  if ~keyword_set(contour_res) then tol = range(cube[kernels]) * 1d-3 $
+  else tol = contour_res
 
   ; CHECK THAT WE HAVE SOME KERNELS TO TRY MERGING.
   kernel_ct = n_elements(kernels)
   if kernel_ct eq 0 then begin
-     message, 'WARNING: No kernels to merge!', /con
-     return, !values.f_nan
+     message, 'No kernels to merge!'
   endif
 
   ;- initialize the merger matrix
@@ -52,14 +56,14 @@ function cnb_mergefind, cube, kernels, $
   minvalue = min(kval, /nan)
   
   ;- discretize the cube data values, to a granularity set by tol
-  vals = cube - (cube mod tol)
+  vals = cube - (cube mod (tol/2))
   levs = vals[uniq(vals, sort(vals))]
   levs = levs[where(finite(levs))]
   ;- get the location, in levs, of the kernels
   kinds = value_locate(levs, vals[kernels])
   
   ;- arrays to hold the bounds of possible contour levels for each
-  ;- merger pair.
+  ;- merger pair. Each merger lies somewhere in between 0 and min(kern1, kern2)
   ind_lower = lonarr(kernel_ct, kernel_ct)
   ind_lower[indgen(kernel_ct), indgen(kernel_ct)] = kinds
   ind_upper = rebin(kinds, kernel_ct, kernel_ct)
@@ -92,7 +96,7 @@ function cnb_mergefind, cube, kernels, $
      id = rebin(r[kernels], kernel_ct, kernel_ct)
      tid = transpose(id)
 
-     ;- lev is an lower limit to kernels on the same island,
+     ;- lev is a lower limit to kernels on the same island,
      ;- and an upper limit to kernels on different islands
      joined = (id eq tid and (id ne 0) and (tid ne 0) and ~diagonal)
      split = (id ne tid and (id ne 0) and (tid ne 0))
@@ -127,5 +131,16 @@ function cnb_mergefind, cube, kernels, $
   pbar, /close
 
   ;- XXX eliminate seeds which are too small at this point?     
-  return, (levs[ind_lower] + levs[ind_upper])/2.
+  granularity = levs[ind_upper] - levs[ind_lower]
+  assert, min(granularity) ge 0
+  assert, max(granularity) lt tol
+
+  ;- there may be some collisions here - remove these
+  ;- XXX this is not ready yet
+;  lo = levs[ind_lower] & hi = levs[ind_upper]
+;  save, lo, hi, kernels, cube, file='refine.sav'
+  
+;  while detect_collision(lo, hi, collision = collision) do $
+;     refine_merger, lo, hi, collision, kernels, cube
+  return, levs[ind_lower]
 end

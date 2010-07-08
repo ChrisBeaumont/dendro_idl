@@ -1,4 +1,4 @@
-*** INTRODUCTION ***
+*** 0. INTRODUCTION ***
 These procedures have been modified from the Erik's original code, in
 an attempt to speed things up. To try this out, use the /FAST keyword
 to topologize.pro. 
@@ -8,10 +8,10 @@ first set are changes to the IDL code, and work by default. The second
 set involve IDL calling new procedures written in C. 
 
 IMPORTANT: For some of these changes to work, you will have to compile
-           the file libdendro.c, described in the last section.
+           the file libdendro.c, described in section 3 of this document.
 
 
-*** Changes to the IDL code *** 
+*** 1. Changes to the IDL code *** 
 
 1) decimate_kernels.pro
 The way insiginificant leaves are pruned from the dendrogram has been
@@ -43,7 +43,7 @@ search. This method avoids creating unncecessary contour levels, and
 also avoids having to define an intelligent "first guess" at which
 contour levels to try. It's thus faster and more robust than mergefind.pro
 
-*** C-based changes ***
+*** 2. C-based changes ***
 
 There are a few C-based functions in libdendro.c that are meant to
 replace certain calls to label_seed, and all calls to
@@ -56,7 +56,7 @@ If you don't know how to do this, the IDL function "make_dll" may help.
 If IDL can't find libdendro.so at runtime, it will use the (slower) routines alllocmax and label_region.
 
 
-*** Hints on compiling libdendro.c ***
+*** 3. Hints on compiling libdendro.c ***
 
 I ran the following commands on my (64 bit) linux machine, to get
 libdendro.so to work with by (32 bit) IDL version:
@@ -72,4 +72,45 @@ To compile on my mac, I used the IDL routine make_dll in the directory where lib
 IDL> make_dll, 'libdendro', 'libdendro', input_dir='.', output_dir='.'
 
 (make sure libdendro.so ends up in a directory in your IDL path)
+
+
+*** 4. Description of the structure created by TOPOLOGIZE ***
+The TOPOLOGIZE function runs the dendrogram analysis on a data cube. It
+produces a structure with the following tags:
+
+ -- MERGER. An [n_leaf, n_leaf] matrix. Element [i,j] gives the intensity
+    threshhold at which leaf i and j merge
+ -- CLUSTER_LABEL. A vectorized (1D) labeling of structures in the data
+    cube. Entry i provides the ID of the highest (i.e. closest to leaf)
+    structure associated with a pixel in the data cube. The location of that
+    pixel is given by x[i], y[i], and v[i]. (Though see warning for X)
+ -- CLUSTER_LABEL_H. A histogram of CLUSTER_LABEL, starting at index 0
+ -- CLUSTER_LABEL_RI. The reverse indices vector for CLUSTER_LABEL_H
+ -- LEVELS. A vector of contour levels at which mergers were searched
+    for. This is not used if TOPOLOGIZE is called with /FAST
+ -- CLUSTERS. A [2, n_leaf - 1] array encoding all of the mergers in the
+    dendrogram. clusters[*, i] gives the ID of the two structures that merge
+    to form structure (i + n_leaf) (0-indexed)
+ -- HEIGHT: A (2 * n_leaf - 1) array listing the height (i.e. intensity) of
+    each structure. Along with XLOCATION, this array can be used to make
+    plots. 
+ -- KERNELS: A vector of (1D) indices, giving the location of the kernels
+    (i.e. the local maxima which define each leaf)
+ -- ORDER: ??? Created by DENDROGRAM_MOD. Permutes the order of the kernels,
+    somehow. 
+ -- NEWEMERGER: A permuted version of MERGER, which is ordered according to
+    the ORDER tag.
+ -- X: A vectorized (1D) list of x locations in the cube. Used with
+    CLUSTER_LABEL. This vector trims away masked out regions to save
+    space. CAUTION: this pixel index is offset from the original data cube by
+    an unspecified amount. Use dendro_offset.pro to calculate the offset.
+ -- Y: Like X, but for y locations
+ -- V: Like X, but for V (i.e. Z in a PPV cube) locations.
+ -- szdata: The output of size() called on the MINI cube
+ -- cubeindex: The [x,y,z] arrays, converted into a 1D index
+ -- ALL_NEIGHBORS: A 0/1, indicating if all_neighbors was set in calls to
+    alllocmax, label_region, etc.
+ -- err: The error cube, in a vectorized form
+ -- xlocation: An arbitrarily sorted list of x coordinates for each dendrogram
+    structure. Can be used with HEIGHT to make untangled dendrogram plots.
 

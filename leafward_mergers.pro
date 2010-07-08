@@ -10,12 +10,12 @@
 ;  clusters: The cluster array returned by cluster_tree
 ;
 ; OUTPUTS:
-;  A vector of the leafward mergers for node. If node is a leaf, it
-;  has no leafward mergers and node is returned by itself. Otherwise,
-;  node is not included in the output list.
+;  A vector of the leafward mergers for node. The input node is included in
+;  this list. 
 ;
 ; MODIFICATION HISTORY:
 ;  April 2010: Written by Chris Beaumont
+;  June 2010: Input node now included in output by default.
 ;-
 function leafward_mergers, node, clusters
 
@@ -37,14 +37,14 @@ function leafward_mergers, node, clusters
 
   ;- if node is a leaf, we are done
   if node lt offset then return, node
+  result = node
 
   children = clusters[*,node - offset]
   s = obj_new('stack')
   s->push, children
   while ~s->isEmpty() do begin
      newnode = s->pop()
-     if n_elements(result) eq 0 then result = newnode $
-     else result=[result, newnode]
+     result = [result, newnode]
      if newnode lt offset then continue
 
      ;- sanity check - indices should always be decreasing
