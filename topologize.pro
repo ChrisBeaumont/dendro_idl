@@ -120,10 +120,9 @@ pro topologize, data, mask, $
               message, 'No local maxima satisfied criteria'
            lmax = lmax[good]
         endif
-;        kernels = cnb_decimate_kernels(lmax, minicube, $
-;                                       all_neighbors = all_neighbors $
-;                                       , delta = delta, sigma = 1.0)
-        message, /con, 'WARNING: Skipped decimation'
+        kernels = cnb_decimate_kernels(lmax, minicube, $
+                                       all_neighbors = all_neighbors $
+                                       , delta = delta, sigma = 1.0)
         kernels = lmax
      endif else begin
         lmax = alllocmax(minicube, friends = friends, $

@@ -1,3 +1,39 @@
+pro mergefind_step, value, lower, upper, cube, kernels, diagonal
+;  assert, max(upper gt cube[kernels]) eq 0
+  assert, min(upper - lower) ge 0
+  
+  
+  ;- label cube based on "islands" higher than value
+  r = label_region(cube gt value, all_n = all_neighbors, /ulong)
+  kernel_ct = n_elements(kernels)
+  id = rebin(r[kernels], kernel_ct, kernel_ct)
+  tid = transpose(id)
+  
+  ;- value is a lower limit to kernels on the same island,
+  ;- and an upper limit to kernels on different islands
+  joined = (id eq tid and (id ne 0) and (tid ne 0) and ~diagonal)
+  split = (id ne tid and (id ne 0) and (tid ne 0))
+  
+  j = where(joined, jct)
+  s = where(split, sct)
+  assert, jct + sct ne 0
+  sanity = upper * 0
+  if jct ne 0 then begin
+     x = j mod kernel_ct & y = j / kernel_ct
+     assert, min(id[x] eq id[y]) eq 1
+     sanity[x,y] += lower[x,y] lt value
+     lower[x,y] = lower[x,y] > value
+     lower[y,x] = lower[x,y]
+  endif
+  if sct ne 0 then begin
+     x = s mod kernel_ct & y = s / kernel_ct
+     sanity[x,y] += upper[x,y] gt value
+     upper[x,y] = upper[x,y] < value
+     upper[y,x] = upper[x,y]
+  endif
+  assert, max(sanity) eq 1
+end
+
 ;+
 ; PURPOSE:
 ;  This function computes the contour levels at which
@@ -36,7 +72,7 @@ function cnb_mergefind, cube, kernels, $
                         all_neighbors = all_neighbors, $
                         contour_res = contour_res
   compile_opt idl2
-
+  
   ;- pick a default resolution
   if ~keyword_set(contour_res) then tol = range(cube[kernels]) * 1d-3 $
   else tol = contour_res
@@ -48,33 +84,23 @@ function cnb_mergefind, cube, kernels, $
   endif
 
   ;- initialize the merger matrix
-  merger = fltarr(kernel_ct, kernel_ct)+!values.f_nan
+  merger = dblarr(kernel_ct, kernel_ct)+!values.f_nan
   merger[indgen(kernel_ct), indgen(kernel_ct)] = cube[kernels]
-  
-  kval = cube[kernels]
-  maxvalue = max(kval, /nan)
-  minvalue = min(kval, /nan)
-  
-  ;- discretize the cube data values, to a granularity set by tol
-  vals = cube - (cube mod (tol/2))
-  levs = vals[uniq(vals, sort(vals))]
-  levs = levs[where(finite(levs))]
-  ;- get the location, in levs, of the kernels
-  kinds = value_locate(levs, vals[kernels])
-  
+      
   ;- arrays to hold the bounds of possible contour levels for each
   ;- merger pair. Each merger lies somewhere in between 0 and min(kern1, kern2)
-  ind_lower = lonarr(kernel_ct, kernel_ct)
-  ind_lower[indgen(kernel_ct), indgen(kernel_ct)] = kinds
-  ind_upper = rebin(kinds, kernel_ct, kernel_ct)
-  ind_upper = ind_upper < transpose(ind_upper)
+  lower = dblarr(kernel_ct, kernel_ct)
+  lower[indgen(kernel_ct), indgen(kernel_ct)] = cube[kernels]
+  upper = rebin(cube[kernels], kernel_ct, kernel_ct)
+  upper = upper < transpose(upper)
 
   ;- array to track convergence
   converged = bytarr(kernel_ct, kernel_ct)
   converged[indgen(kernel_ct), indgen(kernel_ct)] = 1
   pbar, name='Mergefind', /new    
   diagonal = converged          ;-1s along the diagonal
-  
+
+  ;- first step: find mergers to a precision of at least contour_res
   repeat begin
      ;- pick a new contour value - find an unmerged pair, 
      ;- and bisect the possible range of contour values for that pair
@@ -83,45 +109,18 @@ function cnb_mergefind, cube, kernels, $
      i = todo[0] mod kernel_ct & j = todo[0] / kernel_ct
 
      ;- some sanity checks, to make sure we're tracking everything correctly
-     assert, max(levs[ind_upper] gt cube[kernels]) eq 0
-     assert, min(ind_upper - ind_lower) ge 0
+     assert, max(upper gt cube[kernels]) eq 0
+     assert, min(upper - lower) ge 0
 
      ;- bisect a new search value
-     ind = ind_lower[i,j] + (ind_upper[i,j] - ind_lower[i,j]) / 2
-     assert, ind gt ind_lower[i,j] && ind lt ind_upper[i,j]
-     lev = levs[ind]
-
-     ;- label cube based on "islands" higher than lev
-     r = label_region(cube gt lev, all_n = all_neighbors, /ulong)
-     id = rebin(r[kernels], kernel_ct, kernel_ct)
-     tid = transpose(id)
-
-     ;- lev is a lower limit to kernels on the same island,
-     ;- and an upper limit to kernels on different islands
-     joined = (id eq tid and (id ne 0) and (tid ne 0) and ~diagonal)
-     split = (id ne tid and (id ne 0) and (tid ne 0))
-;     assert, min(joined eq transpose(joined)) eq 1
-;     assert, min(split eq transpose(split)) eq 1
+     value = lower[i,j] + (upper[i,j] - lower[i,j]) / 2
+     assert, value gt lower[i,j] && value lt upper[i,j]
      
-     j = where(joined, jct)
-     s = where(split, sct)
-     assert, jct + sct ne 0 ;- otherwise, we should have exited
-     sanity = ind_upper * 0
-     if jct ne 0 then begin
-        x = j mod kernel_ct & y = j / kernel_ct
-        assert, min(id[x] eq id[y]) eq 1
-        sanity[x,y] += ind_lower[x,y] lt ind
-        ind_lower[x,y] = ind_lower[x,y] > ind
-        ind_lower[y,x] = ind_lower[x,y]
-     endif
-     if sct ne 0 then begin
-        x = s mod kernel_ct & y = s / kernel_ct
-        sanity[x,y] += ind_upper[x,y] gt ind
-        ind_upper[x,y] = ind_upper[x,y] < ind
-        ind_upper[y,x] = ind_upper[x,y]
-     endif
-     assert, max(sanity) eq 1
-     converged = (ind_upper - ind_lower) lt 2
+     ;- tighten the bounds, based on this test value
+     mergefind_step, value, lower, upper, cube, kernels, diagonal
+
+     ;- check for convergence
+     converged = (upper - lower) lt contour_res
 
      ;- guess at how much longer we have
      nc = total(converged)
@@ -130,17 +129,36 @@ function cnb_mergefind, cube, kernels, $
   endrep until 0
   pbar, /close
 
-  ;- XXX eliminate seeds which are too small at this point?     
-  granularity = levs[ind_upper] - levs[ind_lower]
-  assert, min(granularity) ge 0
-  assert, max(granularity) lt tol
-
-  ;- there may be some collisions here - remove these
-  ;- XXX this is not ready yet
-;  lo = levs[ind_lower] & hi = levs[ind_upper]
-;  save, lo, hi, kernels, cube, file='refine.sav'
+  ;- second step -- refine merger to resolve non-binary mergers
+  conflicts = find_conflicts(lower)
+  while conflicts[0] ne -1 do begin
+     nconflict = n_elements(conflicts[0,*])
+     for i = 0, nconflict - 1, 1 do begin
+        print, i, nconflict
+        s1 = conflicts[0,i]
+        s2 = conflicts[1,i]
+        s3 = conflicts[2,i]
+        ;- resolve the conflict
+        while lower[s1, s2] eq lower[s1, s3] && $
+           lower[s1, s2] eq lower[s2, s3] do begin
+           
+           range = (upper - lower)[[s1, s1, s2], [s2, s3, s3]]
+           value = ((upper + lower)/2.)[[s1, s1, s2], [s2, s3, s3]]
+           assert, n_elements(range) eq 3
+           top = max(range, loc)
+           value = value[loc]
+           mergefind_step, value, lower, upper, cube, kernels, diagonal
+        endwhile
+     endfor
+     ;- recalculate conflicts
+     conflicts = find_conflicts(lower)
+  endwhile
   
-;  while detect_collision(lo, hi, collision = collision) do $
-;     refine_merger, lo, hi, collision, kernels, cube
-  return, levs[ind_lower]
+  ;- maybe do one more level of refinement: generate dendros 
+  ;- on lower and upper, assert that they are the same?
+
+
+  ;- XXX eliminate seeds which are too small at this point?     
+
+  return, lower
 end

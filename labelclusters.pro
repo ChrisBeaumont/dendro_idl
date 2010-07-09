@@ -42,18 +42,10 @@ function labelclusters, height, clusters, decimkern, levelsin, $
      assert, roots[0] eq k
      assert, loc eq 0
 
-     ;- mrglevels is the critical contour which, 
-     ;- to the requested resolution, lasso's the merger of
-     ;- this structure with its sibling. 
      mrglevels = height[roots[1]]
 
-     ;- we need to mask the just above this critical contour,
-     ;- such that we include all of the area associated with the
-     ;- current structure is included, but such that it is not
-     ;- connected to its sibling
      if keyword_set(fast) then begin
-        delt = (2 * mrglevels) < (height[roots[0]] - height[roots[1]])/2.
-        above_mrg = mrglevels + delt
+        above_mrg = mrglevels
      endif else begin
         sup = max(where(levels gt float(mrglevels), ct))
         if ct eq 0 then sup = 0
