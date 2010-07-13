@@ -166,8 +166,10 @@ pro topologize, data, mask, $
   endif
 
   ; Turn into sparse values again.
-  vectorify, minicube, x = x, y = y, v = v, t = t, $
-             mask = (minicube eq minicube)
+  ; XXX CNB: Doesn't the mask mess up the indices in kernels?!?
+  ;- I think it does. Commenting this out...
+  vectorify, minicube, x = x, y = y, v = v, t = t;, $
+;             mask = (minicube eq minicube)
 
   ;- generate the dendrogram
   generate_dendrogram, merger, clusters = clusters, height = height, xlocation = xlocation, $

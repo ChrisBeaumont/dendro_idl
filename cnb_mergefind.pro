@@ -67,6 +67,8 @@ end
 ;            written by Erik Rosolowsky
 ;  June 2010: Added contour_res keyword. Added code to resolve multi-way
 ;  mergers. cnb. 
+;  July 2010: Now returning the upper limits for each merger. I think
+;  this is the most useful quantity. cnb.
 ;-
 function cnb_mergefind, cube, kernels, $
                         all_neighbors = all_neighbors, $
@@ -130,7 +132,7 @@ function cnb_mergefind, cube, kernels, $
   pbar, /close
 
   ;- second step -- refine merger to resolve non-binary mergers
-  conflicts = find_conflicts(lower)
+  conflicts = find_conflicts(upper)
   while conflicts[0] ne -1 do begin
      nconflict = n_elements(conflicts[0,*])
      for i = 0, nconflict - 1, 1 do begin
@@ -139,8 +141,8 @@ function cnb_mergefind, cube, kernels, $
         s2 = conflicts[1,i]
         s3 = conflicts[2,i]
         ;- resolve the conflict
-        while lower[s1, s2] eq lower[s1, s3] && $
-           lower[s1, s2] eq lower[s2, s3] do begin
+        while upper[s1, s2] eq upper[s1, s3] && $
+           upper[s1, s2] eq upper[s2, s3] do begin
            
            range = (upper - lower)[[s1, s1, s2], [s2, s3, s3]]
            value = ((upper + lower)/2.)[[s1, s1, s2], [s2, s3, s3]]
@@ -151,14 +153,21 @@ function cnb_mergefind, cube, kernels, $
         endwhile
      endfor
      ;- recalculate conflicts
-     conflicts = find_conflicts(lower)
+     conflicts = find_conflicts(upper)
   endwhile
   
   ;- maybe do one more level of refinement: generate dendros 
   ;- on lower and upper, assert that they are the same?
+  ;- then, the structure of the dendrogram is unique.
+  ;- how long would that take???
 
 
   ;- XXX eliminate seeds which are too small at this point?     
 
-  return, lower
+
+  ;- the upper limit is the most convenient. Once the dendrogram
+  ;- is created, these contour levels are guaranteed to split
+  ;- apart the two components of each merger. This makes
+  ;- cluster labeling easier.
+  return, upper
 end
