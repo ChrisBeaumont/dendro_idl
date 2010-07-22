@@ -69,7 +69,7 @@ end
 ; MODIFICATION HISTORY:
 ;  July 2010: Written by Chris Beaumont
 ;-
-function find_conflicts, merger                             
+function find_conflicts, merger, count = count
 
   ;- make the dendrogram
   generate_dendrogram, merger, $
@@ -85,9 +85,10 @@ function find_conflicts, merger
   result = conflicts->toArray()
   bad = conflicts->getSize() eq 0
   obj_destroy, conflicts
-  
+  count = 0
   if bad then return, -1 
   for i = 0, n_elements(result) -1 do result[i] = min(leafward_mergers(result[i], clusters))
+  count = n_elements(result) / 3
   return, reform(result, 3, n_elements(result) / 3)
 
 

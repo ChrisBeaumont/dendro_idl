@@ -21,7 +21,7 @@ function labelclusters, height, clusters, decimkern, levelsin, $
   y0 = (decimkern mod (sz[1]*sz[2]))/sz[1]
   v0 = decimkern/(sz[1]*sz[2])
   clusterlabel = intarr(sz[1], sz[2], sz[3]) + 2^15-1
-  levels = reverse(levelsin[sort(levelsin)])
+  if ~keyword_set(fast) then levels = reverse(levelsin[sort(levelsin)])
 
   ; We need an array to tell secondary clusters (not leaves) where to
   ; find a point within them.  This initializes that array

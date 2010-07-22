@@ -12,7 +12,6 @@ pro topologize, data, mask, $
                 nlevels = nlevels, $
                 pointer = pointer, $
                 structure = structure
-
 ;+
 ; NAME:
 ;    TOPOLOGIZE
@@ -148,7 +147,7 @@ pro topologize, data, mask, $
   if keyword_set(fast) then begin
      merger = cnb_mergefind(minicube, kernels, $
                             all_neighbors = all_neighbors, $
-                            contour_res = contour_res)
+                            contour_res = contour_res, npix = npix)
   endif else begin
      merger = mergefind(minicube, kernels, levels = levels, $
                         all_neighbors = all_neighbors)
@@ -159,17 +158,15 @@ pro topologize, data, mask, $
 
   ;- eliminate insignificant kernels
   if keyword_set(fast) && n_elements(newkern) eq 0 then begin
-     decimate_merger, merger, kernels, minicube, $
+     decimate_merger, merger, kernels, minicube, npix, $
                       all_neighbors = all_neighbors, $
                       delta = delta, sigma = 1.0, $
                       minpix = minpix
   endif
 
   ; Turn into sparse values again.
-  ; XXX CNB: Doesn't the mask mess up the indices in kernels?!?
-  ;- I think it does. Commenting this out...
-  vectorify, minicube, x = x, y = y, v = v, t = t;, $
-;             mask = (minicube eq minicube)
+  vectorify, minicube, x = x, y = y, v = v, t = t, $
+             mask = (minicube eq minicube)
 
   ;- generate the dendrogram
   generate_dendrogram, merger, clusters = clusters, height = height, xlocation = xlocation, $

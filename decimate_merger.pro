@@ -30,12 +30,13 @@
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont
 ;-
-pro decimate_merger, merger, kernels, minicube, $
+pro decimate_merger, merger, kernels, minicube, npix, $
                           all_neighbors = all_neighbors, $
                           delta = delta, sigma = sigma, $
                           minpix = minpix
 
   compile_opt idl2
+  assert, n_params() eq 4
   nk = n_elements(kernels)
 
   if n_elements(sigma) eq 0 then message, 'must provide sigma'
@@ -46,13 +47,12 @@ pro decimate_merger, merger, kernels, minicube, $
   delta_rejects = 0
   area_rejects = 0
   order = sort(merger[indgen(nk), indgen(nk)])
-  pbar, /new, name='decimate_merger'
   for i = 0, nk - 1, 1 do begin
-     pbar, 1D * i / (nk - 1)
      keep = where(good_kernels)
      lev = merger[order[i],keep]
      s = reverse(sort(lev))
-     ;- the peak is too shallow
+
+     ;- the peak is too shallow, or too small
      if (lev[s[0]] - lev[s[1]]) / sigma lt delta then begin
         ;- this can happen, but is due to precison limitations 
         ;- in mergefind. We know from decimate_kernels that 
@@ -62,24 +62,15 @@ pro decimate_merger, merger, kernels, minicube, $
      endif
 
      ;- the peak is too small
-     ;- XXX this really doesn't seem to be worth it. Skip
-     continue
-     
-     seed = array_indices( minicube, kernels[order[i]])
-     r = byte(minicube * 0)
-     label_seed, minicube, lev[s[1]], seed, r, $
-                 /external, all_n = all_neighbors
-;     r = label_region(minicube gt lev[s[1]], all_n = all_neighbors, $
-;                      /ulong)
-     area = total(r)
-     if area lt minpix then begin
+     np = npix[order[i], keep]
+     if min(np) lt minpix then begin
         area_rejects++
         good_kernels[order[i]] = 0
         continue
      endif
   endfor
-  pbar, /close
-  keep = where(good_kernels)
+  keep = where(good_kernels, ct)
+  assert, ct ge 1
 
   message, 'Kernels rejected for area: '+string(area_rejects), /con
   message, 'Kernels rejected for contrast: '+string(delta_rejects), /con
