@@ -13,7 +13,6 @@
 ;  minicube: The data
 ;  
 ; KEYWORD PARAMETERS:
-;  ALL_NEIGHBORS: Set to include 26 and not 6 neighbors
 ;  DELTA: The minimum intensity (in units of sigma) a kernel must be
 ;         above the background. 
 ;  SIGMA: The 1 sigma noise in the image
@@ -29,9 +28,10 @@
 ;
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont
+;  July 2010: Added code to implement minpix keyword. removed all_neighbors
+;  keyword. cnb.
 ;-
 pro decimate_merger, merger, kernels, minicube, npix, $
-                          all_neighbors = all_neighbors, $
                           delta = delta, sigma = sigma, $
                           minpix = minpix
 
@@ -78,5 +78,7 @@ pro decimate_merger, merger, kernels, minicube, npix, $
   kernels = kernels[keep]
   merger = merger[keep, *]
   merger = merger[*, keep]
+  npix = npix[keep, *]
+  npix = npix[*, keep]
   return
 end

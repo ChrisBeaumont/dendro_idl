@@ -8,21 +8,26 @@
 ;  <June 2010: Written by Erik Rosolowsky
 ;  June 2010: Got rid of the annoying "32767" label for masked out
 ;             pixels. They are now -1. Chris Beaumont
+;  July 2010: Input is now the cube, instead of the vectorized
+;             version. simpler to understand. cnb.
 ;-
 function labelclusters, height, clusters, decimkern, levelsin, $
-                        x, y, v, t, szin, $
+                        cube, $
                         all_neighbors = all_neighbors, fast = fast, $
                         contour_res = contour_res
                         
-  sz = szin
-  if sz[0] eq 2 then sz[3] = 1
-  cubify, x, y, v, t, sz, c = c
-  x0 = decimkern mod sz[1]
-  y0 = (decimkern mod (sz[1]*sz[2]))/sz[1]
-  v0 = decimkern/(sz[1]*sz[2])
-  clusterlabel = intarr(sz[1], sz[2], sz[3]) + 2^15-1
-  if ~keyword_set(fast) then levels = reverse(levelsin[sort(levelsin)])
 
+  ;- just making sure that the kernel locations have been 
+  ;- calculated correctly, given all the vectorifying/cubifying
+  nkern = n_elements(decimkern)
+  if keyword_set(fast) then assert, max(abs(cube[decimkern] - height[0:nkern-1])) lt 1e-4
+  sz = size(cube)
+  if size(cube, /n_dim) eq 2 then sz[3] = 1
+  badval = 32767
+
+  clusterlabel = intarr(sz[1], sz[2], sz[3]) + badval
+  if ~keyword_set(fast) then levels = reverse(levelsin[sort(levelsin)])
+  
   ; We need an array to tell secondary clusters (not leaves) where to
   ; find a point within them.  This initializes that array
   usekernels = intarr(max(clusters)+1)+max(clusters)+2
@@ -35,18 +40,21 @@ function labelclusters, height, clusters, decimkern, levelsin, $
      
      ; Tell every parent cluster to use the smallest index kernel within it
      ; as a seed point.
-     usekernels[roots] = (min(roots))+intarr(n_elements(roots)) $
-                         < usekernels[roots]
+     usekernels[roots] <= min(roots)
+
      hi = max(height[roots], loc)
-;     assert, height[roots[1]] lt height[roots[0]]
      assert, roots[0] eq k
      assert, loc eq 0
 
      mrglevels = height[roots[1]]
 
+     ;- want to find the lowest level that's above the next merger
      if keyword_set(fast) then begin
+        ;- cnb_mergefind is meant to return an upper limit to the merge 
+        ;- levels, so mrglevels is just above the next merger
         above_mrg = mrglevels
      endif else begin
+        ;- find the lowest level above mrglevels
         sup = max(where(levels gt float(mrglevels), ct))
         if ct eq 0 then sup = 0
         above_mrg = levels[sup]
@@ -54,21 +62,20 @@ function labelclusters, height, clusters, decimkern, levelsin, $
      merge_array[k] = above_mrg
 
      ; Contour above this level
-     mask = label_region(c gt above_mrg, all_neighbors = all_neighbors, /ulong)
+     mask = label_region(cube gt above_mrg, all_neighbors = all_neighbors, /ulong)
 
      ; Reject regions that don't contain the kernel
-     mask = mask eq mask[x0[usekernels[k]], y0[usekernels[k]], v0[usekernels[k]]] ; Label every point in this with the smallest value present (k or a
+     mask = mask eq mask[decimkern[usekernels[k]]] ; Label every point in this with the smallest value present (k or a
 ; preassigned value)
-     clusterlabel[where(mask)] = clusterlabel[where(mask)] < k
+
+     clusterlabel[where(mask)] <= k
   endfor
 
   ;- mask out the unused values to -1
-  bad = where(clusterlabel eq 2^15-1, ct)
+  bad = where(clusterlabel eq badval, ct)
   if ct ne 0 then clusterlabel[bad] = -1
-;  stop
-;  clusterlabel[where(c lt min(height))] = max(clusters)+1
-; Send back a vector.
-  return, clusterlabel[x, y, v]
+
+  return, clusterlabel
 end
 
 

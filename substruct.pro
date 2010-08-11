@@ -14,16 +14,19 @@
 ;          between selecting an annulus and an entire area enclosed by
 ;          a contour.
 ;
+;  count: Set to a variable to hold the number of indices in structure index,
+;  or 0 if there are none
+;
 ; RESULT:
 ;  The indices of the pixels in the (x, y, v, t) tags which contain the
 ;  requested structure. CAUTION: The x,y,v values are offset from the original
-;  data cube by an unspecified amount. Use the dendro_offset function to
-;  calculate this offset.
+;  data cube. the cubeindex structure will map from the cube described by xyvt
+;  to the original data cube.
 ;
 ; MODIFICATION HISTORY:
 ;  June 2010: Written by Chris Beaumont
 ;-
-function substruct, index, ptr, single = single
+function substruct, index, ptr, single = single, count = count
                     
   compile_opt idl2
 
@@ -43,5 +46,6 @@ function substruct, index, ptr, single = single
   result = s->toArray()
   obj_destroy, s
 
-  return, bad ? !values.f_nana : result
+  count = bad ? 0 : n_elements(result)
+  return, bad ? -1 : result
 end

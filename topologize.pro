@@ -88,13 +88,19 @@ pro topologize, data, mask, $
      message, 'No output variables are provided!'
   
   ; Begin with data file and mask and reduce to minimum working size.
+  ;- note, masked data should contain no nans
+  if n_elements(mask) eq 0 then begin
+     if total(~finite(data)) ne 0 then message, 'All nans in input must be masked'
+  endif else begin
+     if total(~finite(data[where(mask)])) ne 0 then message, 'All nans in input must be masked'
+  endelse
+
   vectorify, data, mask = mask, x = x, y = y, v = v, t = t, $
              ind = cubeindex
 
   ; Trim to minimum size  
   cubify, x, y, v, t, cube = minicube, pad = (friends > specfriends), $
           twod = (szdata[0] eq 2), indvec = cubeindex, indcube = indcube
-
   if n_elements(kernels) gt 0 then begin
      newkern = kernels*0
      for i = 0, n_elements(kernels)-1 do newkern[i] = where(indcube eq kernels[i])
@@ -152,6 +158,8 @@ pro topologize, data, mask, $
      merger = mergefind(minicube, kernels, levels = levels, $
                         all_neighbors = all_neighbors)
   endelse 
+  nk = n_elements(kernels)
+  assert, max(abs(minicube[kernels] - merger[indgen(nk), indgen(nk)])) lt 1e-4
 
   disconnected = where(merger ne merger, discct)
   if discct gt 0 then merger[disconnected] = 0.0
@@ -163,10 +171,22 @@ pro topologize, data, mask, $
                       delta = delta, sigma = 1.0, $
                       minpix = minpix
   endif
+  nk = n_elements(kernels)
+  assert, max(abs(minicube[kernels] - merger[indgen(nk), indgen(nk)])) lt 1e-4
+
 
   ; Turn into sparse values again.
+  ;- note that indcube[newx, newy, newv] still maps onto cubeindex, 
+  ;- which itself maps into the original data. The following are true, 
+  ;- even after the next line of code is executed:
+  ;-  minicube[x, y, v] = t -- just what vectorify does
+  ;-  indcube[x, y, v] = cubeindex
+  ;-  minicube[x, y, v] = data[cubeindex]
   vectorify, minicube, x = x, y = y, v = v, t = t, $
              mask = (minicube eq minicube)
+  assert, min(minicube[x,y,v] eq t)
+  assert, min(indcube[x,y,v] eq cubeindex)
+  assert, min(minicube[x,y,v] eq data[cubeindex])
 
   ;- generate the dendrogram
   generate_dendrogram, merger, clusters = clusters, height = height, xlocation = xlocation, $
@@ -194,11 +214,14 @@ pro topologize, data, mask, $
   newmerger = newmerger > transpose(newmerger)
   order = leafnodes
   sz = size(minicube)    
+  
   cluster_label = labelclusters(height, clusters, $
-                                kernels, levels, x, y, v, t, sz, $
+                                kernels, levels, minicube, $
                                 all_neighbors = all_neighbors, fast = fast, $
                                 contour_res = contour_res)
-  
+  ;-next line is SLOW, but a useful bug checker
+;  validate_label, minicube, kernels, cluster_label, clusters 
+  cluster_label = cluster_label[x, y, v] ;- vectorify this cube
   
   ;- create a histogram (with reverse indices) of the cluster labels. 
   h = histogram(cluster_label, min = 0, reverse_indices = ri)
@@ -211,9 +234,9 @@ pro topologize, data, mask, $
                kernels:kernels, order:order, $
                newmerger:newmerger, x:x, y:y, v:v, t:t, sz:sz, $
                cubeindex:cubeindex, szdata:szdata, $
-               all_neighbors:all_neighbors, xlocation:xlocation}
+               all_neighbors:all_neighbors, xlocation:xlocation, $
+               npix : keyword_set(fast) ? npix : -1, $
+               fast : keyword_set(fast)}
   
   if arg_present(pointer) then pointer = ptr_new(structure)
-  
-  return
 end

@@ -123,8 +123,9 @@ function cnb_mergefind, cube, kernels, $
   endif
 
   ;- initialize the merger matrix
-  merger = dblarr(kernel_ct, kernel_ct)+!values.f_nan
-  merger[indgen(kernel_ct), indgen(kernel_ct)] = cube[kernels]
+;  merger = dblarr(kernel_ct, kernel_ct)+!values.f_nan
+;  merger[indgen(kernel_ct), indgen(kernel_ct)] = cube[kernels]
+
   ;- initialize npix to large numers. off-diagonal elements 
   ;- will be updated.
   npix = lonarr(kernel_ct, kernel_ct) + n_elements(cube)
