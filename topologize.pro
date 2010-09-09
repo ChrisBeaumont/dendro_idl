@@ -167,7 +167,6 @@ pro topologize, data, mask, $
   ;- eliminate insignificant kernels
   if keyword_set(fast) && n_elements(newkern) eq 0 then begin
      decimate_merger, merger, kernels, minicube, npix, $
-                      all_neighbors = all_neighbors, $
                       delta = delta, sigma = 1.0, $
                       minpix = minpix
   endif

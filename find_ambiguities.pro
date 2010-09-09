@@ -19,6 +19,7 @@
 ;
 ; MODIFICATION HISTORY:
 ;  July 21 2010: Written by Chris Beaumont
+;  August 13 2010: Fixed bug when some blobs never merge above zero
 ;-
 function find_ambiguities, lower, upper, count = count
   compile_opt idl2
@@ -43,6 +44,11 @@ function find_ambiguities, lower, upper, count = count
      s1 = seeds[0,i] & s2 = seeds[1,i]
      l1 = lower[s1, s2] & u1 = upper[s1, s2]
      l1 = l1[0] & u1 = u1[0]
+
+     ;- a merger at zero indicates the union of two separate blobs
+     ;- there is no hope of determining a more precise merger
+     ;- level, so give up
+     if l1 le 0 || u1 le 0 then continue
 
      ;-compare this structure to all the remaining 
      ;- structures

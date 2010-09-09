@@ -13,6 +13,7 @@
 ;
 ; MODIFICATION HISTORY:
 ;  July 2010: Written by Chris Beaumont
+;  Aug 13 2010: Fixed bug when dendrograms contain non-merging blobs. cnb.
 ;-
 pro recursive_conflict, index, clusters, height, conflicts
   nleaf = n_elements(clusters[0,*]) + 1
@@ -25,6 +26,10 @@ pro recursive_conflict, index, clusters, height, conflicts
   leafward = clusters[*, index - nleaf]
   lev = height[index]
   lev2 = height[leafward]
+
+  ;- nothing to be done if merger level is zero--
+  ;- indicates a 'merger' of distinct structures
+  if lev eq 0 then return
 
   ;- leafward level equals current level - a conflict
   if lev2[0] eq lev then begin
@@ -68,6 +73,7 @@ end
 ;
 ; MODIFICATION HISTORY:
 ;  July 2010: Written by Chris Beaumont
+;  Aug 13 2010: Fixed bug when working with dendrograms containing non-merging blobs.
 ;-
 function find_conflicts, merger, count = count
 

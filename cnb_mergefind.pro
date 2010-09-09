@@ -174,6 +174,8 @@ function cnb_mergefind, cube, kernels, $
   pbar, /close
 
   ;- second step -- refine merger to resolve non-binary mergers
+  ;- XXX find_conflicts suggested a kernel trio where the value was
+  ;- known exatcly to be zero. fix
   conflicts = find_conflicts(upper, count = con_ct)
   while con_ct ne 0 do begin
      nconflict = con_ct
@@ -183,9 +185,14 @@ function cnb_mergefind, cube, kernels, $
         s1 = conflicts[0,i]
         s2 = conflicts[1,i]
         s3 = conflicts[2,i]
-        ;- resolve the conflict
+        ;- refine until conflict is resolved
+        ;- resolved when: merger is not at the same level,
+        ;- or the merger level is known exactly
         while upper[s1, s2] eq upper[s1, s3] && $
-           upper[s1, s2] eq upper[s2, s3] do begin
+           upper[s1, s2] eq upper[s2, s3] && $
+           ((upper - lower)[s1,s2] gt 0 || $
+            (upper - lower)[s1, s3] gt 0 || $
+            (upper - lower)[s2,s3] gt 0) do begin
            
            ;- find the lest-well determined pair, and bisect
            range = (upper - lower)[[s1, s1, s2], [s2, s3, s3]]
@@ -210,6 +217,7 @@ function cnb_mergefind, cube, kernels, $
   conflicts = find_ambiguities(lower, upper, count = con_ct)
   while con_ct ne 0 do begin
      nconflict = con_ct
+     print, con_ct
      pbar, name='Mergefind 3 -'+strtrim(con_ct,2)+' conflicts', /new    
      for i = 0, nconflict - 1, 1 do begin
         pbar, 1. * i / nconflict
