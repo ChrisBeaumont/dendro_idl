@@ -35,7 +35,12 @@ pro topologize, data, mask, $
 ;    ALL_NEIGHBORS -- Whether to consider corner pixels as connected to a
 ;                     given pixel. Defaults to zero.
 ;    LEVELS -- Input/output keyword.  Sepecified the contouring levels
-;              at which to evaluate the data. Only used if /FAST is not set
+;              at which to evaluate the data. If /FAST is set and
+;              Levels is not provided, then the variable will hold the
+;              ordered list of merger contours. If /FAST is set and
+;              Levels are provided, then the dendrogram will be the
+;              same, but subsequent routines (e.g. levelprops)
+;              dependent on the value of levels will run differently.
 ;    NLEVELS -- The number of contour levels to use. Only used if /FAST is not
 ;               set, and LEVELS is not provided.
 ;    MINPIX -- Used in culling local maxima (see DECIMATE_KERNELS.pro
@@ -68,6 +73,9 @@ pro topologize, data, mask, $
 ;       June 2010: Added histogram tags to the output structure. cnb
 ;       June 24 2010: Removed resolvetop, error, ecube keywords. added
 ;                     contour_res keyword. cnb.
+;       Sep 9 2010: Default levels variable now holds the merger contour
+;                   levels when called with /FAST. Gets along better
+;                   with levelprops. cnb.
 ;-
 
   compile_opt idl2
@@ -107,12 +115,12 @@ pro topologize, data, mask, $
   endif 
 
   ; Establish Contouring levels if unset
+  explicitLevels = n_elements(levels) ne 0
   if n_elements(levels) eq 0 then begin
      if n_elements(nlevels) eq 0 then  nlevels = (n_elements(x)/50 > 250) < 500
      levels = (max(t)-min(t))/(nlevels)*(findgen(nlevels))+min(t)
      levels = [0.0, levels]
-  endif else if keyword_set(fast) then $
-     message, /continue, 'WARNING: The levels variable you provided will be ignored because /FAST is set'
+  endif
 
   ; Establish local maxima if unset
   if n_elements(newkern) eq 0 then begin 
@@ -173,6 +181,9 @@ pro topologize, data, mask, $
   nk = n_elements(kernels)
   assert, max(abs(minicube[kernels] - merger[indgen(nk), indgen(nk)])) lt 1e-4
 
+  ;- update levels variable if /FAST is set
+  if keyword_set(fast) && ~explicitLevels then $
+     levels = merger[uniq(merger, sort(merger))]
 
   ; Turn into sparse values again.
   ;- note that indcube[newx, newy, newv] still maps onto cubeindex, 

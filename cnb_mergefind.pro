@@ -174,10 +174,9 @@ function cnb_mergefind, cube, kernels, $
   pbar, /close
 
   ;- second step -- refine merger to resolve non-binary mergers
-  ;- XXX find_conflicts suggested a kernel trio where the value was
-  ;- known exatcly to be zero. fix
-  conflicts = find_conflicts(upper, count = con_ct)
-  while con_ct ne 0 do begin
+  do2 = 0
+  if do2 then conflicts = find_conflicts(upper, count = con_ct)
+  while do2 && con_ct ne 0 do begin
      nconflict = con_ct
      pbar, name='Mergefind 2 -'+strtrim(con_ct,2)+' conflicts', /new    
      for i = 0, nconflict - 1, 1 do begin
