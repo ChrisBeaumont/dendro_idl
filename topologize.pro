@@ -76,6 +76,8 @@ pro topologize, data, mask, $
 ;       Sep 9 2010: Default levels variable now holds the merger contour
 ;                   levels when called with /FAST. Gets along better
 ;                   with levelprops. cnb.
+;       October 2010: bugfix. cluster_label_h now has a bin for every
+;                     dendrogram id. cnb.
 ;-
 
   compile_opt idl2
@@ -136,7 +138,6 @@ pro topologize, data, mask, $
         kernels = cnb_decimate_kernels(lmax, minicube, $
                                        all_neighbors = all_neighbors $
                                        , delta = delta, sigma = 1.0)
-        kernels = lmax
      endif else begin
         lmax = alllocmax(minicube, friends = friends, $
                          specfriends = specfriends)
@@ -234,7 +235,8 @@ pro topologize, data, mask, $
   cluster_label = cluster_label[x, y, v] ;- vectorify this cube
   
   ;- create a histogram (with reverse indices) of the cluster labels. 
-  h = histogram(cluster_label, min = 0, reverse_indices = ri)
+  h = histogram(cluster_label, min = 0, max = n_elements(height), $
+                reverse_indices = ri)
 
   ; Create a topology structure to contain all the information about the
   ; cloud's analysis

@@ -9,15 +9,20 @@
 ;        a leaf)
 ;  clusters: The cluster array returned by cluster_tree
 ;
+; KEYWORD PARAMETERS:
+;  parents: If set, include only the 2 structures which merge to form
+;  node. If node is a leaf, then return -1.
+;
 ; OUTPUTS:
 ;  A vector of the leafward mergers for node. The input node is included in
 ;  this list. 
 ;
 ; MODIFICATION HISTORY:
 ;  April 2010: Written by Chris Beaumont
-;  June 2010: Input node now included in output by default.
+;  June 2010: Input node now included in output by default. cnb.
+;  October 2010: Added PARENTS keywords. cnb.
 ;-
-function leafward_mergers, node, clusters
+function leafward_mergers, node, clusters, parents = parents
 
   compile_opt idl2
 
@@ -34,6 +39,11 @@ function leafward_mergers, node, clusters
 
   sz = size(clusters)
   offset = sz[2] + 1
+  
+  if keyword_set(parents) then begin
+     if node lt offset then return, -1
+     return, clusters[*, node-offset]
+  endif
 
   ;- if node is a leaf, we are done
   if node lt offset then return, node
