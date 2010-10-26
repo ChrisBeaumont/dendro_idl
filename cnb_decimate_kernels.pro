@@ -39,6 +39,7 @@ function cnb_decimate_kernels, k_in,  cube, ALL_NEIGHBORS = all_neighbors, $
 ;
 ; MODIFICATION HISTORY:
 ;   Feb 2010: Adapted from decimate_kernels by Chris Beaumont
+;   Oct 2010: Fixed big efficiency leak in how "frac" is calculated. cnb.
 ;-
 
 ; COPY KERNELS TO ALLOW EDITTING/AVOID UNFORTUNATE ACCIDENTS
@@ -64,7 +65,8 @@ function cnb_decimate_kernels, k_in,  cube, ALL_NEIGHBORS = all_neighbors, $
   dbl_cube = double(cube)
   bad = where(~finite(dbl_cube), badct)
   if badct ne 0 then dbl_cube[bad] = min(dbl_cube,/nan)
-  s = sort(cube)
+  h = histogram(cube, nbin = 500, loc = l, /nan)
+  h = 1. * total(h, /cumul) / total(h)
 
   ;- show progress
   pbar, /new, name='Decimate Kernels'
@@ -75,7 +77,8 @@ function cnb_decimate_kernels, k_in,  cube, ALL_NEIGHBORS = all_neighbors, $
      
      seed = array_indices(cube, kernels[order[i]])
      val = cube[kernels[order[i]]] - sigma * delta
-     frac = 1D * interpol(s, cube[s], val) / n_elements(s)
+     ind = 0 > ((val - l[0]) / (l[1] - l[0])) < (n_elements(l)-1)
+     frac = h[ind]
      label_seed, dbl_cube, val, seed, result, $
                  all_neighbors = all_neighbors, $
                  external = (frac lt .5)
