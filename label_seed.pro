@@ -33,6 +33,7 @@
 ; MODIFICATION HISTORY:
 ;  Feb 2010: Written by Chris Beaumont
 ;  May 2010: Changed the way libdendro is searched for. cnb.
+;  Oct 2010: Fixed a crash when all_neighbors is not provided
 ;- 
 pro label_seed, data, thresh, seed, result, external = external, $
                 all_neighbors = all_neighbors
@@ -55,7 +56,8 @@ pro label_seed, data, thresh, seed, result, external = external, $
                           ndim eq 3 ? long(sz[3]) : 1L, $
                           long(seed[0]), long(seed[1]), $
                           ndim eq 3 ? long(seed[2]) : 0L, $
-                          double(thresh), long(all_neighbors),/unload)
+                          double(thresh), long(keyword_set(all_neighbors)),$
+                          /unload)
   endif else begin
      r = label_region(data gt thresh, all_n = all_neighbors, /ulong)
      if ndim eq 2 then result = (r eq r[seed[0], seed[1]]) $

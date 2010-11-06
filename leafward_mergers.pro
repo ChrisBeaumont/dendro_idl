@@ -59,7 +59,6 @@ function leafward_mergers, node, clusters, parents = parents
 
      ;- sanity check - indices should always be decreasing
      assert, max(clusters[*,newnode-offset]) lt newnode
-
      s->push, clusters[*, newnode - offset]
   endwhile
   obj_destroy, s

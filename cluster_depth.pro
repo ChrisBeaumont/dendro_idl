@@ -2,7 +2,8 @@
 ; PURPOSE:
 ;  This procedure determines the minimum and maximum depth of each
 ;  node in a dendrogram. These are defined as the minimum / maximum
-;  number of nodes visited from some leaf to this node. 
+;  number of nodes visited from some leaf to this node. Leaves have
+;  depths of zero.
 ;
 ; INPUTS:
 ;  cluster: The cluster array describing the dendrogram
