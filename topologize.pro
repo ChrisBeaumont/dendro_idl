@@ -11,7 +11,8 @@ pro topologize, data, mask, $
                 levels = levels, $
                 nlevels = nlevels, $
                 pointer = pointer, $
-                structure = structure
+                structure = structure, $
+                debug = debug
 ;+
 ; NAME:
 ;    TOPOLOGIZE
@@ -158,6 +159,12 @@ pro topologize, data, mask, $
   message, 'Kernels used in decomposition: '+$
            string(n_elements(kernels)), /con
 
+  message, 'Intensity of weakest kernel: '+$
+           strtrim(min(minicube[kernels]),2), /con
+
+  if keyword_set(debug) then $
+     save, minicube, kernels, file='topologize_debug_1.sav'
+
   ; Calculate toplogy of the data cube
   if keyword_set(fast) then begin
      merger = cnb_mergefind(minicube, kernels, $
@@ -169,6 +176,9 @@ pro topologize, data, mask, $
   endelse 
   nk = n_elements(kernels)
   assert, max(abs(minicube[kernels] - merger[indgen(nk), indgen(nk)])) lt 1e-4
+  if keyword_set(debug) then $
+     save, minicube, kernels, merger, file='topologize_debug_2.sav'
+
 
   disconnected = where(merger ne merger, discct)
   if discct gt 0 then merger[disconnected] = 0.0
@@ -225,13 +235,17 @@ pro topologize, data, mask, $
   newmerger = newmerger > transpose(newmerger)
   order = leafnodes
   sz = size(minicube)    
-  
+
+  if keyword_set(debug) then $
+     save, newmerger, merger, clusters, height, xlocation, $
+           minicube, file='topologize_debug_3.sav'
+
   cluster_label = labelclusters(height, clusters, $
                                 kernels, levels, minicube, $
                                 all_neighbors = all_neighbors, fast = fast, $
                                 contour_res = contour_res)
   ;-next line is SLOW, but a useful bug checker
-;  validate_label, minicube, kernels, cluster_label, clusters 
+  ;  validate_label, minicube, kernels, cluster_label, clusters 
   cluster_label = cluster_label[x, y, v] ;- vectorify this cube
   
   ;- create a histogram (with reverse indices) of the cluster labels. 

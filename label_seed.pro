@@ -41,15 +41,14 @@ pro label_seed, data, thresh, seed, result, external = external, $
   ndim = size(data, /n_d)
   sz = size(data)
 
-  if n_elements(result) ne n_elements(data) then result = byte(data*0)
+  if n_elements(result) ne n_elements(data) then result = byte(data)
   result[*] = 0B
-
-  ;- the c program requires its input in double. Make it so
-  is_dbl = size(data,/type) eq 5
-  if ~is_dbl && keyword_set(external) then data = double(data)
 
   lib = find_libdendro() & ct = strlen(lib)
   if keyword_set(external) && ct gt 0 then begin
+  ;- the c program requires its input in double. Make it so
+     is_dbl = size(data,/type) eq 5
+     if ~is_dbl && keyword_set(external) then data = double(data)
      junk = call_external(lib[0], 'fill', $
                           data, result, long(ndim), $
                           long(sz[1]), long(sz[2]), $
