@@ -23,8 +23,15 @@
 ;  October 2010: Added PARENTS keywords. cnb.
 ;-
 function leafward_mergers, node, clusters, parents = parents
-
+  
   compile_opt idl2
+  on_error, 2
+  
+  if n_params() ne 2 then begin
+     print, 'calling sequence'
+     print, 'result = leafward_mergers(node, clusters, [/parents])'
+     return, !values.f_nan
+  endif
 
   ;- clusters is a [2, n_leaf-1] array,
   ;- the i'th row of which lists the index
@@ -39,7 +46,9 @@ function leafward_mergers, node, clusters, parents = parents
 
   sz = size(clusters)
   offset = sz[2] + 1
-  
+
+  if node - offset ge n_elements(clusters[0,*]) then return, -1
+
   if keyword_set(parents) then begin
      if node lt offset then return, -1
      return, clusters[*, node-offset]

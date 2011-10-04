@@ -8,8 +8,7 @@
 ;  values: 1) A scalar corresponding to a single ID and (if /single is
 ;  not set), all of the substructures of that Id; 2) An array of ids
 ;  (in which case only these ids, and not their substructures, will be
-;  returned), or 3) the scalar -1, in which case the indices of the
-;  leaves are used. 
+;  returned)
 ;  ptr: The ptr variable returned by TOPOLOGIZE
 ;  
 ; KEYWORD PARAMETERS:
@@ -31,30 +30,43 @@
 ;
 ; MODIFICATION HISTORY:
 ;  June 2010: Written by Chris Beaumont
+;  Jan 2011: Added parameter checking. cnb.
+;  Feb 2011: Removed support for specifying leaves via index=-1. cnb.
+;  July 2011: Removed use of stack for speed.
 ;-
 function substruct, index, ptr, single = single, count = count
                     
   compile_opt idl2
+  on_error, 2
+
+  if n_params() ne 2 then begin
+     print, 'calling sequence'
+     print, 'ind = substruct(index, ptr, [/single, count = count])'
+     return, !values.f_nan
+  endif
+  count = 0
 
   if keyword_set(single) || n_elements(index) gt 1 then indices = index else begin
-     ;- -1 means 'the leaves'
-     indices = (index eq -1) ? get_leaves((*ptr).clusters) : $
-        leafward_mergers(index, (*ptr).clusters)
+     indices = leafward_mergers(index, (*ptr).clusters)
   endelse
-  s = obj_new('stack')
+  if min(indices) lt 0 then return, -1
+
+  count = total( (*ptr).cluster_label_h[indices])
+  if count eq 0 then return, -1
+  result = lonarr(count)
+  offset = 0
   for i = 0, n_elements(indices) - 1, 1 do begin
      x = indices[i]
-     if x ge n_elements((*ptr).cluster_label_h) || $
-        (*ptr).cluster_label_h[x] eq 0 then continue
+     if x lt 0 || x ge n_elements((*ptr).cluster_label_h) then continue     
+     if (*ptr).cluster_label_h[x] eq 0 then continue
+
      ind = (*ptr).cluster_label_ri[(*ptr).cluster_label_ri[x] : $
                                    (*ptr).cluster_label_ri[x+1]-1]
-     s->push, ind
+     nind = n_elements(ind)
+     result[offset : offset + nind - 1] = ind
+     offset += nind
   endfor
 
-  bad = (s->getSize() eq 0)
-  result = s->toArray()
-  obj_destroy, s
+  return, result
 
-  count = bad ? 0 : n_elements(result)
-  return, bad ? -1 : result
 end

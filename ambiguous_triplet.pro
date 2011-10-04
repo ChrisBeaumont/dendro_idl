@@ -6,6 +6,11 @@
 ;  order in which the thee seeds merge into a 'mini-dendrogram'
 ;  is not known given the uncertainties.
 ;
+;  Note: rarely, an unambiguous merger order cannot be obtained,
+;        given finite floating-point precision. In such a case, this
+;        function will label the situation as unambiguous (since
+;        resolving the ambiguity is impossible anyways).
+;
 ; INPUTS:
 ;  inds: a (3xn) set of n triplets. Each triplet gives the index of a
 ;  local maximum, and a row/column in the merger matrix.
@@ -18,6 +23,9 @@
 ;
 ; MODIFICATION HISTORY:
 ;  July 21 2010: Written by Chris Beaumont
+;  Feb 7 2010: Caught case when lower and upper converge to within
+;              machine precision, and hence are intrinsically
+;              ambiguous. cnb.
 ;- 
 function ambiguous_triplet, inds, lower, upper
   compile_opt idl2
@@ -41,5 +49,12 @@ function ambiguous_triplet, inds, lower, upper
   h = histogram(tot, min = 0)
   assert, h[0] eq 0 && h[2] eq 0
 
-  return, tot eq 3
+  b1 = (m1u + m1l) / 2D
+  b2 = (m2u + m2l) / 2D
+  b3 = (m3u + m3l) / 2D
+  eps = (b1 eq m1u) or (b1 eq m1l) or $
+        (b2 eq m2u) or (b2 eq m2l) or $
+        (b3 eq m3u) or (b3 eq m3l)
+        
+  return, tot eq 3 and ~eps
 end

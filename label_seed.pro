@@ -42,7 +42,7 @@ pro label_seed, data, thresh, seed, result, external = external, $
   sz = size(data)
 
   if n_elements(result) ne n_elements(data) then result = byte(data)
-  result[*] = 0B
+  result *= 0B
 
   lib = find_libdendro() & ct = strlen(lib)
   if keyword_set(external) && ct gt 0 then begin

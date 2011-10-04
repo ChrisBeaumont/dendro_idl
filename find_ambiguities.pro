@@ -20,6 +20,8 @@
 ; MODIFICATION HISTORY:
 ;  July 21 2010: Written by Chris Beaumont
 ;  August 13 2010: Fixed bug when some blobs never merge above zero
+;  Feb 7 2011: Added code to detect insufficient machine precision
+;  when trying to resolve ambiguities.
 ;-
 function find_ambiguities, lower, upper, count = count
   compile_opt idl2
@@ -77,16 +79,29 @@ function find_ambiguities, lower, upper, count = count
         endelse        
      endfor
   endfor 
-  array = result->toArray()
+  count = 0
+  array = result->toArray(act)
   obj_destroy, result
 
+  if act eq 0 then return, -1
   nelem = n_elements(array)
   array = reform(array, 3, nelem/3)
 
   ;- find out which candidates are actually ambiguous
   ambiguous = ambiguous_triplet(array, lower, upper)
   hit = where(ambiguous, count)
-  if count ne 0 then return, array[*, hit] else return, -1
+
+  if count eq 0 then return, -1
+
+  l1 = lower[array[0,hit]] & l2 = lower[array[1,hit]] & l3 = lower[array[2,hit]]
+  u1 = upper[array[0,hit]] & u2 = upper[array[2,hit]] & u3 = upper[array[2,hit]]
+  b1 = (l1 + u1)/2D & b2 = (l2 + u2)/2D & b3 = (l3 + u3) / 2D
+  eps = (b1 eq l1) or (b1 eq u1) or (b2 eq l2) or (b2 eq u2) or (b3 eq l3) or (b3 eq u3)
+  
+  h2 = where(~eps, count)
+  if count eq 0 then return, -1
+
+  return, array[*, hit[h2]]
 end
 
 pro test

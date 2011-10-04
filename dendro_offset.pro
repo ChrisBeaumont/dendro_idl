@@ -10,7 +10,6 @@
 ;
 ; INPUTS:
 ;  ptr: The pointer output from topologize
-;  cube: The original data cube
 ;
 ; OUTPUTS:
 ;  A 3 element vector which gives the location, in the original data, of the
@@ -25,16 +24,17 @@
 ; MODIFICATION HISTORY:
 ;  June 21 2010: Written by Chris Beaumont
 ;-
-function dendro_offset, ptr, cube
+function dendro_offset, ptr
+
+  x0 = (*ptr).x[0]
+  y0 = (*ptr).y[0]
+  v0 = (*ptr).v[0]
+  i0 = (*ptr).cubeindex[0]
+  sz = (*ptr).szdata
+
+  dx = i0 mod sz[1] - x0
+  dy = (i0 / sz[1]) mod sz[2] - y0
+  dz = (i0 / sz[1] / sz[2]) - v0
+  return, [dx, dy, dz]
   ind = 0
-  maxtry = 100
-  for ii = 0, maxtry - 1, 1 do begin
-     hit = where((*ptr).t[ii] eq cube, ct)
-     if ct ne 1 then continue
-     ind = array_indices(cube, hit)
-     if n_elements(ind) eq 2 then i = [ind, 0]
-     offset = ind - [(*ptr).x[ii], (*ptr).y[ii], (*ptr).v[ii]]
-     return, offset
-  endfor
-  message, "Error! Couldn't calculate offset"
 end

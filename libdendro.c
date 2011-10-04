@@ -36,46 +36,51 @@
  * Argv is a 5 element array:
  *   argv[0]: the data array, double precision
  *   argv[1]: nfriend, an IDL_LONG
- *   argv[2]: x size of the data array, an IDL_LONG
- *   argv[3]: y size of the data array, an IDL_LONG
- *   argv[4]: The output mask array. Type UCHAR (IDL byte). Assumed to be populated with 1s
+ *   argv[2]: minval, a double
+ *   argv[3]: x size of the data array, an IDL_LONG
+ *   argv[4]: y size of the data array, an IDL_LONG
+ *   argv[5]: The output mask array. Type UCHAR (IDL byte). Assumed to be populated with 1s
  *
  * 
  */
-void alllocmax_2d(IDL_INT argc, void *argv[]) {
-  
-  double *cube = argv[0];
-  IDL_LONG friends = *(IDL_LONG *) argv[1];
-  IDL_LONG xsize = *(IDL_LONG *) argv[2];
-  IDL_LONG ysize = *(IDL_LONG *) argv[3];
-  UCHAR *result = argv[4];
 
-  IDL_LONG i,j,fail;
-  IDL_LONG di, dj;
-  IDL_LONG l, r, b, t;
-  // loop over pixels
-  for(j = 0; j < ysize; j++) {
-    for(i = 0; i < xsize; i++) {
-      int off = OFF2(i,j,xsize);
-      l = MAX(0, i - friends);
-      r = MIN(xsize - 1, i + friends);
-      b = MAX(0, j - friends);
-      t = MIN(ysize - 1, j + friends);
-      fail = 0;
-      // loop over neighbors
-      for(di = l; di <= r; di++) {
-	for(dj = b; dj <= t; dj++) {
-	  if (di == i && dj == j) continue;
-	  fail = (*(cube + off) <= *(cube + OFF2(di, dj, xsize)));
-	  if (fail == 1) break;
- 	}  // neighbor y loop
-	if (fail == 1) break;
-      } // neighbor x loop
-      *(result + off) = fail ? 0 : 1;
-    } // x loop
-  } // y loop
+#define locmax2(TYPE)							\
+  TYPE *cube = argv[0];							\
+  IDL_LONG friends = *(IDL_LONG *) argv[1];				\
+  double minval = *(double *) argv[2];					\
+  IDL_LONG xsize = *(IDL_LONG *) argv[3];				\
+  IDL_LONG ysize = *(IDL_LONG *) argv[4];				\
+  UCHAR *result = argv[5];						\
+  IDL_LONG i,j,success;							\
+  IDL_LONG di, dj;							\
+  IDL_LONG l, r, b, t;							\
+  for(j = 0; j < ysize; j++) {					\
+    for(i = 0; i < xsize; i++) {					\
+      int off = OFF2(i,j,xsize);					\
+      l = MAX(0, i - friends);						\
+      r = MIN(xsize - 1, i + friends);					\
+      b = MAX(0, j - friends);						\
+      t = MIN(ysize - 1, j + friends);					\
+      success = 1;							\
+      for(di = l; di <= r; di++) {					\
+	for(dj = b; dj <= t; dj++) {					\
+	  if (di == i && dj == j) continue;				\
+	  success = (*(cube + off) >= minval) &&			\
+	    (*(cube + off) >= *(cube + OFF2(di, dj, xsize)));		\
+	  if (!success) break;						\
+	}								\
+	if (!success) break;						\
+      }									\
+      *(result + off) = success ? 1 : 0;				\
+    }									\
+  }									
+
+void alllocmax_2d_float (IDL_INT argc, void *argv[]) {
+  locmax2(float);
 }
-
+void alllocmax_2d_double (IDL_INT argc, void *argv[]) {
+  locmax2(double);
+}
 
 /** 
  * Finds local maxima in a 3D array. l
@@ -86,54 +91,65 @@ void alllocmax_2d(IDL_INT argc, void *argv[]) {
  *  argv[0]: Data array, double
  *  argv[1]: friends, IDL_LONG
  *  argv[2]: specfriends, IDL_LONG
- *  argv[3]: xsize, IDL_LONG
- *  argv[4]: ysize, IDL_LONG
- *  argv[5]: zsize, IDL_LONG
- *  argv[6]: result array, UCHAR (IDL Byte)
+ *  argv[3]: minval, double
+ *  argv[4]: xsize, IDL_LONG
+ *  argv[5]: ysize, IDL_LONG
+ *  argv[6]: zsize, IDL_LONG
+ *  argv[7]: result array, UCHAR (IDL Byte)
  */
-void alllocmax_3d(IDL_INT argc, void *argv[]) {
-  
-  double *cube = argv[0];
-  IDL_LONG friends = *(IDL_LONG *) argv[1];
-  IDL_LONG specfriends = *(IDL_LONG *) argv[2];
-  IDL_LONG xsize = *(IDL_LONG *) argv[3];
-  IDL_LONG ysize = *(IDL_LONG *) argv[4];
-  IDL_LONG zsize = *(IDL_LONG *) argv[5];
-  UCHAR *result = argv[6];
+#define locmax3(TYPE)							\
+  TYPE *cube = argv[0];							\
+  IDL_LONG friends = *(IDL_LONG *) argv[1];				\
+  IDL_LONG specfriends = *(IDL_LONG *) argv[2];				\
+  double minval = *(double *) argv[3];					\
+  IDL_LONG xsize = *(IDL_LONG *) argv[4];				\
+  IDL_LONG ysize = *(IDL_LONG *) argv[5];				\
+  IDL_LONG zsize = *(IDL_LONG *) argv[6];				\
+									\
+  UCHAR *result = argv[7];						\
+  IDL_LONG i,j,k,success;						\
+  IDL_LONG di, dj, dk;							\
+  IDL_LONG l, r, b, t, fr, ba;						\
+									\
+  for(k = 0; k < zsize; k++) {						\
+    for(j = 0; j < ysize; j++) {					\
+      for(i = 0; i < xsize; i++) {					\
+	int off = OFF3(i,j,k,xsize,ysize);				\
+	l = MAX(0, i - friends);					\
+	r = MIN(xsize - 1, i + friends);				\
+	b = MAX(0, j - friends);					\
+	t = MIN(ysize - 1, j + friends);				\
+	fr = MAX(0, k - specfriends);					\
+	ba = MIN(zsize - 1, k + specfriends);				\
+	success = 1;							\
+									\
+	for(di = l; di <= r; di++) {					\
+	  for(dj = b; dj <= t; dj++) {					\
+	    for(dk = fr; dk <= ba; dk++) {				\
+	      if (di == i && dj == j && dk == k) continue;		\
+	      success = (*(cube + off) >= minval) &&			\
+		(*(cube + off) > *(cube + OFF3(di,dj,dk,xsize,ysize)));	\
+									\
+									\
+		if (!success) break;					\
+	    }								\
+	    if (!success) break;					\
+	  }								\
+	  if (!success) break;						\
+	}								\
+	*(result + off) = success ? 1 : 0;				\
+      }									\
+    }									\
+  }									
 
-  IDL_LONG i,j,k,fail;
-  IDL_LONG di, dj, dk;
-  IDL_LONG l, r, b, t, fr, ba;
-  // loop over pixels
-  for(k = 0; k < zsize; k++) {
-    for(j = 0; j < ysize; j++) {
-      for(i = 0; i < xsize; i++) {
-	int off = OFF3(i,j,k,xsize,ysize);
-	l = MAX(0, i - friends);
-	r = MIN(xsize - 1, i + friends);
-	b = MAX(0, j - friends);
-	t = MIN(ysize - 1, j + friends);
-	fr = MAX(0, k - specfriends);
-	ba = MIN(zsize - 1, k + specfriends);
-      fail = 0;
-      // loop over neighbors
-      for(di = l; di <= r; di++) {
-	for(dj = b; dj <= t; dj++) {
-	  for(dk = fr; dk <= ba; dk++) {
-	    if (di == i && dj == j && dk == k) continue;
-	    fail = (*(cube + off) <= *(cube + OFF3(di,dj,dk,xsize,ysize)));
-	    if (fail == 1) break;
-	  } // z neighbor
-	  if (fail == 1) break;
-	} // y neighbor
-	if (fail == 1) break;
-      } // x neighbor
-      *(result + off) = fail ? 0 : 1;
-      } // x pixel
-    } // y pixel
-  } // z pixel
-} // alllocmax_3d
 
+void alllocmax_3d_double(IDL_INT argc, void *argv[]) {
+  locmax3(double);
+}
+
+void alllocmax_3d_float(IDL_INT argc, void *argv[]) {
+  locmax3(float);
+}
  
 void fill_2d(double *data, IDL_LONG xsize, IDL_LONG ysize,
 	     int i, int j, int all,
