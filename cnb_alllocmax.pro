@@ -74,7 +74,6 @@ function cnb_alllocmax, cube, indcube = indcube, $
      message, /continue, 'Try generating libdendro.so with MAKE_DLL'
      result = alllocmax(cube, indcube = indcube, friends = friends, $
                         specfriends = specfriends)
-     if badct gt 0 then cube[badind] = badval
      return, result
   endif
  
