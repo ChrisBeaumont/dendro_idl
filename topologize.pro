@@ -91,7 +91,8 @@ pro topologize, data, mask, $
   if not(keyword_set(all_neighbors)) then  all_neighbors = 0b
   if n_elements(minpix) eq 0 then minpix = 4
   if n_elements(delta) eq 0 then message, 'Please provide a value for delta'
-  if keyword_set(fast) && n_elements(contour_res) eq 0 then message, 'Please provide a value for contour_res'
+  if keyword_set(fast) && n_elements(contour_res) eq 0 then $
+     contour_res = delta / 5.
   if keyword_set(fast) && contour_res gt delta then $
      message, /continue, 'WARNING: contour resolution is greater than delta. This could lead to weird behavior...'
 
