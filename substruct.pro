@@ -37,7 +37,6 @@
 function substruct, index, ptr, single = single, count = count
                     
   compile_opt idl2
-  on_error, 2
 
   if n_params() ne 2 then begin
      print, 'calling sequence'
@@ -51,7 +50,7 @@ function substruct, index, ptr, single = single, count = count
   endelse
   if min(indices) lt 0 then return, -1
 
-  count = total( (*ptr).cluster_label_h[indices])
+  count = total( (*ptr).cluster_label_h[indices], /preserve)
   if count eq 0 then return, -1
   result = lonarr(count)
   offset = 0

@@ -57,7 +57,7 @@ function dendro_index::substruct, index, count = count, single = single
 
   offset = 0
   result = lonarr(count)
-  for i = 0, n_elements(count) - 1, 1 do begin
+  for i = 0L, n_elements(count) - 1, 1 do begin
      x = indices[i]
      if (*ptr).cluster_label_h[x] eq 0 then continue
      ind = (*ptr).cluster_label_ri[(*ptr).cluster_label_ri[x] : $
@@ -68,7 +68,7 @@ function dendro_index::substruct, index, count = count, single = single
   endfor
   return, result
 end
-     
+
 
 ;+
 ; PURPOSE:
@@ -79,7 +79,7 @@ end
 ;  index[2*i] lists the number of children to structure i (including i
 ;  itself). index[2*i+1] lists an offset such that, if index[2*i] = n
 ;  and index[2*i+1] = off, index[n:n + off-1] = a list of structure i
-;  and its substructures. index[n] = i. 
+;  and its substructures. index[n] = i.
 ;
 ; INPUTS:
 ;  clusters: The cluster array
@@ -92,7 +92,7 @@ end
 ;-
 function dendro_index::_build_index, clusters, index, id, pos
   nleaf = self.nleaf
-  index[2 * id] = pos  
+  index[2L * id] = pos
   index[pos] = id
   if id lt nleaf then begin
      index[2 * id + 1] = 1
@@ -101,12 +101,12 @@ function dendro_index::_build_index, clusters, index, id, pos
 
   left = clusters[0, id - nleaf]
   right = clusters[1, id - nleaf]
-  
+
   lpos = pos + 1
   left = self->_build_index(clusters, index, left, lpos)
   rpos = lpos + left
   right = self->_build_index(clusters, index, right, rpos)
-  
+
   index[2 * id + 1] = left + right + 1
   return, left + right + 1
 end
@@ -128,7 +128,7 @@ function dendro_index::init, ptr
   nleaf = (nst + 1) / 2
   self.nleaf =  nleaf
 
-  index = lonarr(3 * nst)
+  index = lonarr(3L * nst)
   junk = self->_build_index((*ptr).clusters, index, nst - 1, 2 * nst)
   assert, junk eq nst
 
@@ -146,7 +146,7 @@ end
 
 ;+
 ; PURPOSE:
-;  Defines the index class 
+;  Defines the index class
 ;-
 pro dendro_index__define
   obj = {dendro_index, $

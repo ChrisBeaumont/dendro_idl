@@ -140,7 +140,7 @@ function cnb_alllocmax, cube, indcube = indcube, $
     message, 'No true local max found, defaulting to high point in data.', /con
     dummy = max(lmaxcube, lmaxind, /nan)
   endif
-    message, /con, 'found '+strtrim(num,2)+' local maxima'
+    ;message, /con, 'found '+strtrim(num,2)+' local maxima'
 ; IF THE INDEX CUBE IS SUPPLIED AND THERE ARE LOCAL MAXIMA THEN
 ; SUBSTITUTE THE INDICES FROM THE CUBE FOR THE ACTUAL INDICES
     if ((n_elements(indcube) gt 0)) then begin
