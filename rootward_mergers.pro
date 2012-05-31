@@ -14,6 +14,11 @@
 ;  November 2010: Written by Chris Beaumont
 ;-
 function rootward_mergers, id, clusters
+  if n_params() ne 2 then begin
+     print, 'calling sequence'
+     print, 'result = rootward_mergers(id, clusters)'
+     return, !values.f_nan
+  endif
 
   nst = max(clusters)+1
   result = intarr(nst)
@@ -23,6 +28,7 @@ function rootward_mergers, id, clusters
   while 1 do begin
      result[i++] = current
      hit = where(clusters eq current, ct)
+     hit = hit[0]
      current = hit/2 + nleaf
      if ct eq 0 then break
   endwhile
@@ -31,5 +37,8 @@ end
 
 pro test
   clusters =[ [0,1],[2,3],[4,5]]
-  assert, min(rootward_mergers(0, clusters) eq [0, 4])
+  assert, min(rootward_mergers(0, clusters) eq [0, 4, 6])
+
+  clusters =[ [0,1], [2,3], [5,6], [4,7]]
+  assert, array_equal(rootward_mergers(0, clusters), [0, 5, 7, 8])
 end

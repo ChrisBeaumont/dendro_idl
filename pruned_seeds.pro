@@ -32,9 +32,12 @@ function pruned_seeds, ptr, prunelist, count = count, $
   keep = replicate(1B, nst)
   if dokeep then begin
      keep *= 0
-     keep[prunelist] = 1
-  endif else $
-     keep[prunelist] = 0
+     if prunelist[0] ne -1 then $
+        keep[prunelist] = 1
+  endif else begin
+     if prunelist[0] ne -1 then $
+        keep[prunelist] = 0
+  endelse
 
   keep = where(keep, ct)
 
