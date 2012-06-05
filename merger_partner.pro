@@ -19,6 +19,13 @@
 ;  Sep 10, 2010: Written by Chris Beaumont
 ;-
 function merger_partner, node, clusters, merge = merged
+
+  if n_params() ne 2 then begin
+     print, 'Calling sequence'
+     print, 'result = merger_partner(node, clusters, [merged = merged])'
+     return, !values.f_nan
+  endif
+
   merged = -1
   nleaf = n_elements(clusters[0,*])+1
   hit = where(clusters eq node, ct)
