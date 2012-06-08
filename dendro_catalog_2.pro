@@ -41,7 +41,7 @@ function dendro_catalog_2, arg, levels, $
 
      p = merger_partner(i, (*ptr).clusters, merge = m)
      h_hi = (*ptr).height[i]
-     h_lo = m eq -1 ? min((*ptr).height) : (*ptr).height[m]
+     h_lo = m eq -1 ? (0 < min((*ptr).height)) : (*ptr).height[m]
      lw = leafward_mergers(i, (*ptr).clusters)
 
      for j = 0, nlevel - 1, 1 do begin
