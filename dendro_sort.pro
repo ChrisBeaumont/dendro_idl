@@ -45,6 +45,20 @@ pro _pos, ptr, i, width, pos, key
   _pos, ptr, p[1], width, pos, key
 end
 
+;+
+; PURPOSE:
+;  Re-sort a dendrogram in place. "Pivots" the x locations of each
+;  structure so that a quantity associated with each right branch
+;  is greater than the same quantity for the left
+;
+; INPUTS:
+;  ptr: A dendrogram pointer
+;  key: An array of a measured quantity for each structure
+;
+; KEYWORD PARAMETERS:
+;  /inten: Set to sort by integrated intensity (key not needed)
+;  /height: Set to sort by branch height (key not needed)
+;-
 pro dendro_sort, ptr, key, width = width, inten = inten, height = height
   nst = n_elements((*ptr).height)
   pos = fltarr(nst)

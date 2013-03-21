@@ -1,5 +1,5 @@
 /**
- * The following procedures are C implementations of some loop-intensive dendrogram code. 
+ * The following procedures are C implementations of some loop-intensive dendrogram code.
  */
 
 #include <stdio.h>
@@ -30,7 +30,7 @@
 
 /**
  * Creates a local maxima mask in a 2d image.
- * Local maxima are greater than all of their neighbors in 
+ * Local maxima are greater than all of their neighbors in
  * a square of size 2 * nfriend + 1
  *
  * Argv is a 5 element array:
@@ -41,7 +41,7 @@
  *   argv[4]: y size of the data array, an IDL_LONG
  *   argv[5]: The output mask array. Type UCHAR (IDL byte). Assumed to be populated with 1s
  *
- * 
+ *
  */
 
 #define locmax2(TYPE)							\
@@ -73,7 +73,7 @@
       }									\
       *(result + off) = success ? 1 : 0;				\
     }									\
-  }									
+  }
 
 void alllocmax_2d_float (IDL_INT argc, void *argv[]) {
   locmax2(float);
@@ -82,9 +82,9 @@ void alllocmax_2d_double (IDL_INT argc, void *argv[]) {
   locmax2(double);
 }
 
-/** 
+/**
  * Finds local maxima in a 3D array. l
- * Local maxima are pixels which are greater than all neighbors 
+ * Local maxima are pixels which are greater than all neighbors
  * in a rectangle of radius (friends, friends, specfriends).
  *
  * argv is a 7 element array:
@@ -140,7 +140,7 @@ void alllocmax_2d_double (IDL_INT argc, void *argv[]) {
 	*(result + off) = success ? 1 : 0;				\
       }									\
     }									\
-  }									
+  }
 
 
 void alllocmax_3d_double(IDL_INT argc, void *argv[]) {
@@ -150,19 +150,19 @@ void alllocmax_3d_double(IDL_INT argc, void *argv[]) {
 void alllocmax_3d_float(IDL_INT argc, void *argv[]) {
   locmax3(float);
 }
- 
+
 void fill_2d(double *data, IDL_LONG xsize, IDL_LONG ysize,
 	     int i, int j, int all,
 	     double thresh, UCHAR *result) {
-  int off;        
+  int off;
   int top, capacity = xsize;
   off = OFF2(i,j,xsize);
-  
+
   int *stack;
 
   // easy case: seed position is zero. quit
   if (*(data + off) <= thresh ||
-      (i < 1) || (i >= xsize - 1) || 
+      (i < 1) || (i >= xsize - 1) ||
       (j < 1) || (j >= ysize - 1)) {
     printf("XXX Quitting\n");
     return;
@@ -189,34 +189,34 @@ void fill_2d(double *data, IDL_LONG xsize, IDL_LONG ysize,
     }
 
     off = *(stack + top--);
-    i = off % xsize; j = off / xsize;  
-    
+    i = off % xsize; j = off / xsize;
+
     *(result + off) = 1;
-    
+
     // add neighbors to the stack
-    STACK2(1,0); STACK2(-1,0); 
+    STACK2(1,0); STACK2(-1,0);
     STACK2(0,1); STACK2(0,-1);
     if (all != 0) {
-      STACK2(1,1); STACK2(1,-1); 
+      STACK2(1,1); STACK2(1,-1);
       STACK2(-1,1); STACK2(-1,-1);
     }
   } // top >= 0
 free(stack);
 }
 
-void fill_3d(double *data, 
-	     IDL_LONG xsize, IDL_LONG ysize, IDL_LONG zsize, 
-	     int i, int j, int k, int all, 
+void fill_3d(double *data,
+	     IDL_LONG xsize, IDL_LONG ysize, IDL_LONG zsize,
+	     int i, int j, int k, int all,
 	     double thresh, UCHAR *result) {
   int off, top;
   off = OFF3(i,j,k,xsize,ysize);
   int *stack, capacity = xsize;
   // easy case: seed position is zero. quit.
-  if ((i < 1) || (i >= xsize-1) || 
-      (j < 1) || (j >= ysize-1) || 
+  if ((i < 1) || (i >= xsize-1) ||
+      (j < 1) || (j >= ysize-1) ||
       (k < 1) || (k >= zsize-1) ||
       *(data + off) <= thresh) return;
- 
+
   stack = malloc(capacity * sizeof(int));
   if (stack == NULL) {
     printf("allocation failure\n");
@@ -239,7 +239,7 @@ void fill_3d(double *data,
     off = *(stack + top--);
     i = off % xsize; j = (off / xsize) % ysize; k = off / (xsize * ysize);
     *(result + off) = 1;
-    
+
     STACK3(0,0,1); STACK3(0,0,-1);
     STACK3(0,1,0); STACK3(0,-1,0);
     STACK3(1,0,0); STACK3(-1,0,0);
@@ -254,7 +254,7 @@ void fill_3d(double *data,
   free(stack);
   return;
 }
- 
+
 void fill(int argc, void* argv[]) {
   double *cube   = argv[0];
   UCHAR *result  = argv[1];
@@ -268,18 +268,18 @@ void fill(int argc, void* argv[]) {
   double thresh  = *(double *) argv[9];
   IDL_LONG all   = *(IDL_LONG *) argv[10];
   int i;
-  
+
   if (ndim == 2) {
-    fill_2d(cube, xsize, ysize,(int)xseed, (int)yseed, (all == 0) ? 0 : 1, 
+    fill_2d(cube, xsize, ysize,(int)xseed, (int)yseed, (all == 0) ? 0 : 1,
 	    thresh, result);
     for(i = 0; i < xsize * ysize; i++) if (result[i] == 2) result[i] = 0;
   } else {
-    fill_3d(cube, xsize, ysize, zsize, (int)xseed, (int)yseed, (int)zseed, 
+    fill_3d(cube, xsize, ysize, zsize, (int)xseed, (int)yseed, (int)zseed,
 	    (all == 0) ? 0 : 1, thresh, result);
     for(i = 0; i < xsize * ysize * zsize; i++) if (result[i] == 2) result[i] = 0;
   }
 }
-  
+
 int main(int argc, char** argv) {
   int i, j;
   double data[25], thresh;
@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
   thresh = 1;
 
   for(i = 0; i < 25; i++) *(data + i) = 0;
-  
+
 
   for (i = 1; i < 3; i++) {
     for (j = 1; j < 3; j++) {
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  for(i = 0; i < 25; i++) *(result + i) = 0;  
+  for(i = 0; i < 25; i++) *(result + i) = 0;
 
   fill_2d(data, 5, 5, 2,2,1,thresh,result);
 
@@ -306,4 +306,3 @@ int main(int argc, char** argv) {
   printf("\n");
   return 0;
 }
-
